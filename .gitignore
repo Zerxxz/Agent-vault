@@ -1,0 +1,32 @@
+# Environment files (NEVER commit these)
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Move build artifacts
+move/build/
+move/Move.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts

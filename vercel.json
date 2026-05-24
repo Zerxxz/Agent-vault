@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm --prefix web install && npm --prefix web run build",
+  "outputDirectory": "web/.next",
+  "installCommand": "echo 'install handled by buildCommand'",
+  "framework": "nextjs",
+  "rootDirectory": "web"
+}
