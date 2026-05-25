@@ -4,20 +4,19 @@ import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  computeDormancy,
+  formatDuration,
+  type AgentChainData,
+} from "@/lib/inheritance";
 
 const PACKAGE_ID =
   process.env.NEXT_PUBLIC_AGENT_PACKAGE_ID ??
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 const AGENT_TYPE = `${PACKAGE_ID}::agent::AgentNFT`;
 
-export type AgentSummary = {
-  id: string;
-  name: string;
-  persona: string;
-  avatar: string;
+export type AgentSummary = AgentChainData & {
   memoryCount: number;
-  version: number;
-  updatedAtMs: number;
 };
 
 export function AgentList() {
@@ -50,16 +49,27 @@ export function AgentList() {
           const content = item.data?.content;
           if (!content || content.dataType !== "moveObject") continue;
           const fields = content.fields as Record<string, unknown>;
+
+          const memoryRefs = (fields.memory_refs as unknown[]) ?? [];
+          const memoryCount = memoryRefs.length;
+
+          const heirsRaw = (fields.heirs as unknown[]) ?? [];
+          const heirs = heirsRaw
+            .map((h) => (typeof h === "string" ? h : null))
+            .filter((s): s is string => typeof s === "string");
+
           list.push({
             id: item.data?.objectId ?? "",
+            creator: (fields.creator as string) ?? "",
             name: (fields.name as string) ?? "Untitled",
             persona: (fields.persona as string) ?? "",
             avatar: (fields.avatar as string) ?? "🤖",
-            memoryCount: Array.isArray(fields.memory_refs)
-              ? (fields.memory_refs as unknown[]).length
-              : 0,
-            version: Number(fields.version ?? 0),
+            memoryBlobIds: extractBlobIds(memoryRefs),
+            heirs,
+            dormancyThresholdMs: Number(fields.dormancy_threshold_ms ?? 0),
             updatedAtMs: Number(fields.updated_at_ms ?? 0),
+            version: Number(fields.version ?? 0),
+            memoryCount,
           });
         }
 
@@ -100,7 +110,7 @@ export function AgentList() {
         {[0, 1, 2].map((i) => (
           <li
             key={i}
-            className="h-32 animate-pulse rounded-2xl border border-white/5 shimmer"
+            className="h-36 animate-pulse rounded-2xl border border-white/5 shimmer"
           />
         ))}
       </ul>
@@ -133,39 +143,67 @@ export function AgentList() {
       }}
       className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
     >
-      {items.map((agent) => (
-        <motion.li
-          key={agent.id}
-          variants={{
-            hidden: { opacity: 0, y: 12 },
-            show: { opacity: 1, y: 0 },
-          }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-        >
-          <Link
-            href={`/agent/${agent.id}`}
-            className="block h-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:border-white/20 hover:bg-white/[0.05]"
+      {items.map((agent) => {
+        const dormancy = computeDormancy(agent);
+        return (
+          <motion.li
+            key={agent.id}
+            variants={{
+              hidden: { opacity: 0, y: 12 },
+              show: { opacity: 1, y: 0 },
+            }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <span className="text-3xl">{agent.avatar}</span>
-              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white/50">
-                v{agent.version}
-              </span>
-            </div>
-            <p className="font-medium">{agent.name}</p>
-            <p className="mt-1 line-clamp-2 text-xs text-white/50">
-              {agent.persona}
-            </p>
-            <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3 text-[10px] uppercase tracking-wider">
-              <span className="text-white/40">
-                {agent.memoryCount} {agent.memoryCount === 1 ? "memory" : "memories"}
-              </span>
-              <span className="text-violet-300">Open chat →</span>
-            </div>
-          </Link>
-        </motion.li>
-      ))}
+            <Link
+              href={`/agent/${agent.id}`}
+              className="block h-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:border-white/20 hover:bg-white/[0.05]"
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <span className="text-3xl">{agent.avatar}</span>
+                <StatusBadge isDormant={dormancy.isDormant} />
+              </div>
+              <p className="font-medium">{agent.name}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-white/50">
+                {agent.persona}
+              </p>
+              <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3 text-[10px] uppercase tracking-wider">
+                <span className="text-white/40">
+                  {agent.memoryCount}{" "}
+                  {agent.memoryCount === 1 ? "memory" : "memories"} ·{" "}
+                  {agent.heirs.length}{" "}
+                  {agent.heirs.length === 1 ? "heir" : "heirs"}
+                </span>
+                <span className="text-violet-300">
+                  {dormancy.isDormant ? "Memorial →" : "Open chat →"}
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-white/30">
+                {dormancy.isDormant
+                  ? `Dormant since ${formatDuration(dormancy.silentMs)}`
+                  : `Active · ${formatDuration(dormancy.remainingMs)} until dormant`}
+              </div>
+            </Link>
+          </motion.li>
+        );
+      })}
     </motion.ul>
+  );
+}
+
+function StatusBadge({ isDormant }: { isDormant: boolean }) {
+  if (isDormant) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-200">
+        <span className="size-1.5 rounded-full bg-amber-400" />
+        Dormant
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-emerald-200">
+      <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" />
+      Active
+    </span>
   );
 }
 
@@ -182,4 +220,26 @@ function EmptyState({
       <p className="mt-2 text-sm text-white/50">{body}</p>
     </div>
   );
+}
+
+/**
+ * memory_refs come back from RPC either as `[{ fields: { blob_id } }]`
+ * or `[{ blob_id }]` depending on the SDK version. Handle both.
+ */
+function extractBlobIds(memoryRefs: unknown[]): string[] {
+  const out: string[] = [];
+  for (const m of memoryRefs) {
+    if (m && typeof m === "object") {
+      if ("fields" in m) {
+        const f = (m as { fields: { blob_id?: string } }).fields;
+        if (typeof f.blob_id === "string") out.push(f.blob_id);
+        continue;
+      }
+      if ("blob_id" in m) {
+        const b = (m as { blob_id?: string }).blob_id;
+        if (typeof b === "string") out.push(b);
+      }
+    }
+  }
+  return out;
 }

@@ -18,11 +18,18 @@ import {
 } from "./storage";
 import { cosineSimilarity, topK, type ScoredHit } from "./search";
 import { readBlob, storeBlob } from "./walrus";
+import {
+  type Visibility,
+  VISIBILITY_HEIRS,
+  VISIBILITY_PRIVATE,
+} from "./contract";
 
 export type MemoryPayload = {
   text: string;
   embedding: number[];
   category: string;
+  /** Mirrors the on-chain visibility byte (0 private, 1 heirs-visible). */
+  visibility: Visibility;
   createdAtMs: number;
 };
 
@@ -32,12 +39,13 @@ export type MemoryPayload = {
  * round-trip.
  *
  * Returns the new Walrus blob id — caller is expected to sign a Sui tx
- * that calls `add_memory` with this blob id.
+ * that calls `add_memory` with this blob id and the same `visibility`.
  */
 export async function persistMemory(args: {
   agentObjectId: string;
   text: string;
   category: string;
+  visibility: Visibility;
   apiKey: string;
 }): Promise<{ blobId: string; embedding: number[] }> {
   const embedding = await embed(args.text, args.apiKey);
@@ -46,6 +54,7 @@ export async function persistMemory(args: {
     text: args.text,
     embedding,
     category: args.category,
+    visibility: args.visibility,
     createdAtMs: Date.now(),
   };
 
@@ -59,6 +68,7 @@ export async function persistMemory(args: {
     text: args.text,
     embedding,
     category: args.category,
+    visibility: args.visibility,
     createdAtMs: payload.createdAtMs,
   });
 
@@ -67,14 +77,28 @@ export async function persistMemory(args: {
 
 /**
  * Run cosine search over the local cache and return the K best matches.
+ * `visibilityFilter` lets the caller restrict which memories can be
+ * surfaced — important in heir mode where private memories must stay
+ * hidden even though they're decryptable in the cache.
  */
 export async function searchRelevant(args: {
   agentObjectId: string;
   query: string;
   apiKey: string;
   k: number;
+  /** When set, only memories matching one of these flags are returned. */
+  visibilityFilter?: Visibility[];
 }): Promise<ScoredHit<LocalMemory>[]> {
-  const memories = await listMemories(args.agentObjectId);
+  const all = await listMemories(args.agentObjectId);
+  const memories =
+    args.visibilityFilter === undefined
+      ? all
+      : all.filter((m) =>
+          args.visibilityFilter!.includes(
+            (m.visibility ?? VISIBILITY_HEIRS) as Visibility,
+          ),
+        );
+
   if (memories.length === 0) return [];
 
   const queryEmbedding = await embed(args.query, args.apiKey);
@@ -102,6 +126,9 @@ export function memoriesAreSimilar(
  * Rehydrate the local cache for an agent by pulling every blob_id
  * referenced on-chain, decrypting, and writing into IndexedDB. Used when
  * a user opens the app on a new device.
+ *
+ * Memories whose payload predates the visibility field default to
+ * `VISIBILITY_HEIRS` so older agents migrate cleanly.
  */
 export async function rehydrateFromChain(args: {
   agentObjectId: string;
@@ -115,13 +142,21 @@ export async function rehydrateFromChain(args: {
   for (const blobId of args.blobIds) {
     try {
       const ciphertext = await readBlob(blobId);
-      const payload = await decryptJson<MemoryPayload>(key, ciphertext);
+      const payload = await decryptJson<Partial<MemoryPayload>>(
+        key,
+        ciphertext,
+      );
+      const visibility =
+        payload.visibility === VISIBILITY_PRIVATE
+          ? VISIBILITY_PRIVATE
+          : VISIBILITY_HEIRS;
       await putMemory(args.agentObjectId, {
         blobId,
-        text: payload.text,
-        embedding: payload.embedding,
-        category: payload.category,
-        createdAtMs: payload.createdAtMs,
+        text: payload.text ?? "",
+        embedding: payload.embedding ?? [],
+        category: payload.category ?? "memory",
+        visibility,
+        createdAtMs: payload.createdAtMs ?? Date.now(),
       });
       restored++;
     } catch {

@@ -1,18 +1,18 @@
-# 🧠 AgentVault
+# 🧠 AgentVault — Living Will Edition
 
-> Portable AI agents with verifiable memory. Submission for the
-> **Tatum × Walrus Hackathon** (Build on Sui with Walrus, May 23 – Jun 6).
+> **A mind that outlives you.**
+> Submission for the **Tatum × Walrus Hackathon** (Build on Sui with Walrus, May 23 – Jun 6).
 
-AgentVault turns every AI agent into something you actually own. Mint a
-persona on Sui, talk to it like you'd talk to ChatGPT or Claude, and watch
-the memories pile up — encrypted, on Walrus, signed into a Move object.
-Switch models, switch wallets, switch devices: the brain comes with you.
+AgentVault is the first AI agent that can be inherited. You train it on
+your voice and your values today; you list the wallets of people you
+love. The Move contract on Sui watches for your silence. If you stop
+ping-ing — by choice, by absence, or by fate — your heirs unlock the
+agent and can talk to it forever, in your own preserved voice.
 
-**Core idea.** Inspired by Mysten Labs' [MemWal SDK](https://github.com/MystenLabs/MemWal),
-AgentVault implements the same portable-memory pattern (Walrus storage +
-Sui ownership + semantic recall) but skips the relayer dependency so it
-ships in 14 days. Production drops in `@mysten-incubation/memwal` once
-hosted relayer infra matures.
+The agent's memories live encrypted on **Walrus**. The ownership and
+the dead-man's switch live on **Sui**, accessed through a **Tatum** RPC
+gateway. Architecture is inspired by Mysten Labs'
+[MemWal SDK](https://github.com/MystenLabs/MemWal).
 
 ---
 
@@ -20,32 +20,56 @@ hosted relayer infra matures.
 
 | Layer        | Used for                                                       |
 | ------------ | -------------------------------------------------------------- |
-| **Walrus**   | Encrypted memory blobs (one per atomic memory)                  |
-| **Sui Move** | `AgentNFT` object — persona, blob_id list, version, ownership   |
+| **Walrus**   | Encrypted memory blobs (one per atomic memory, transparent PNGs of mind) |
+| **Sui Move** | `AgentNFT` — persona, memory_refs, heirs, dormancy threshold    |
 | **Tatum**    | All Sui RPC traffic from the Next.js app + wallet calls         |
 | **OpenAI**   | Chat (`gpt-4o-mini`) + embeddings (`text-embedding-3-small`)    |
 
 ```
 ┌─────────────────────────────────────────────┐
-│         Next.js App (Browser)               │
+│        Next.js App (Browser)                │
 │                                             │
-│  Chat → /api/chat (OpenAI streaming)        │
+│  Chat → /api/chat (streaming)               │
 │        │                                    │
 │        ↓                                    │
 │   ┌─────────────────────────┐               │
 │   │  Memory Engine          │               │
-│   │  • extract (LLM)        │               │
+│   │  • extract atomic facts │               │
 │   │  • embed (OpenAI)       │               │
-│   │  • AES-GCM encrypt      │               │
-│   │  • cosine search local  │               │
+│   │  • AES-encrypt          │               │
+│   │  • cosine recall local  │               │
 │   └────────┬─────────┬──────┘               │
 └────────────┼─────────┼──────────────────────┘
              ▼         ▼
-       ┌─────────┐  ┌──────────────┐
-       │ Walrus  │  │ Sui via Tatum│
-       │ (blobs) │  │ AgentNFT     │
-       └─────────┘  └──────────────┘
+       ┌─────────┐  ┌──────────────────┐
+       │ Walrus  │  │ Sui via Tatum    │
+       │ blobs   │  │ AgentNFT {       │
+       │ (per-   │  │   memory_refs[], │
+       │  mem)   │  │   heirs[],       │
+       └─────────┘  │   dormancy_ms,   │
+                    │   updated_at_ms  │
+                    │ }                │
+                    └──────────────────┘
 ```
+
+---
+
+## The dead-man's switch — in plain English
+
+- **Owner** has chatted (or pinged) recently → `is_dormant = false`.
+  Only the owner can read or write.
+- **Owner** goes silent for longer than the dormancy threshold →
+  `is_dormant = true`. Listed heirs can now read.
+- **Heir** opens the agent → "Memorial mode" banner. They chat. The
+  agent answers using the owner's heir-visible memories, in the
+  owner's voice. **No new memories are written.** The soul stays as
+  the original owner wrote it.
+- Anyone not on the heir list → locked screen, no exceptions.
+
+The contract never stores a `is_dormant` boolean. It's computed off-chain
+from `now > updated_at_ms + dormancy_threshold_ms`. Every owner-only
+mutation bumps `updated_at_ms`, so just *using* the agent counts as
+"I'm alive."
 
 ---
 
@@ -55,20 +79,24 @@ hosted relayer infra matures.
 .
 ├── move/
 │   ├── Move.toml
-│   ├── sources/agent.move        # AgentNFT + mint/add_memory/update
-│   └── tests/agent_tests.move    # 4 unit tests
+│   ├── sources/agent.move        # AgentNFT + heirs + dormancy + ping
+│   └── tests/agent_tests.move    # 7 unit tests
 ├── web/                          # Next.js 14 App Router
 │   ├── app/
-│   │   ├── page.tsx              # Landing
-│   │   ├── create/page.tsx       # Mint agent (persona builder)
-│   │   ├── agents/page.tsx       # List owned agents
+│   │   ├── page.tsx              # Landing — "A mind that outlives you."
+│   │   ├── create/page.tsx       # Mint flow (persona + dormancy preset)
+│   │   ├── agents/page.tsx       # Roster with Active/Dormant pills
 │   │   ├── agent/[id]/
-│   │   │   ├── page.tsx          # Chat interface
+│   │   │   ├── page.tsx          # Role-aware chat (owner / heir / stranger)
+│   │   │   ├── legacy/page.tsx   # Owner-only inheritance management
 │   │   │   └── memories/page.tsx # Memory ledger
 │   │   ├── settings/page.tsx     # BYOK OpenAI key
 │   │   └── api/chat/route.ts     # Edge streaming proxy
-│   ├── components/               # Header, ChatInterface, AgentVisual…
-│   └── lib/                      # config, sui, walrus, crypto, memory…
+│   ├── components/               # ChatInterface, HeirManager, DormancyControl, …
+│   └── lib/
+│       ├── inheritance.ts        # role + dormancy computation
+│       ├── contract.ts           # Move tx builders
+│       └── memory.ts             # extract/embed/encrypt/persist pipeline
 ├── scripts/publish.sh
 ├── .env.example
 └── .github/workflows/ci.yml
@@ -90,16 +118,17 @@ hosted relayer infra matures.
 
 ```bash
 sui client switch --env mainnet
-sui client active-address     # ensure SUI is here for gas
 ./scripts/publish.sh
 ```
 
-Look for `Published Objects` → copy the **PackageID**. You'll paste it
-into `web/.env.local` next.
+Look for `Published Objects` in the output, copy the **PackageID**.
 
 > Run the test suite first if you want extra confidence:
 > ```bash
 > cd move && sui move test
+> # 7 tests should pass — mint defaults, memory + visibility, ping,
+> # heir round-trip, duplicate/missing aborts, dormancy bounds,
+> # is_dormant_at logic.
 > ```
 
 ### 2. Configure & run the web app
@@ -120,37 +149,49 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>, connect your wallet, head to `/settings` to
-paste your OpenAI key, then `/create` to mint an agent.
+Open <http://localhost:3000>:
+1. Connect wallet
+2. `/settings` → paste your OpenAI key (BYOK, never leaves your browser)
+3. `/create` → mint your first agent. Pick a dormancy threshold —
+   **"5 minutes (demo)"** is great for showing the unlock during a
+   walk-through.
+4. Chat for a turn or two — memories pile up live.
+5. `/agent/{id}/legacy` → add an heir wallet (use a second wallet you
+   control for the demo).
+6. Stop chatting and wait the threshold. Switch wallets to the heir.
+   Open the same agent. Memorial mode unlocks.
 
 ### 3. Deploy to Vercel (≈5 minutes)
 
 1. Push the repo to GitHub.
-2. <https://vercel.com/new> → import the repo.
+2. <https://vercel.com/new> → import.
 3. Set **Root Directory** to `web`.
 4. Add the same env vars as `.env.local` in **Project Settings**.
 5. Deploy.
 
 ### 4. Submit
 
-Open `SUBMISSION.md` — Devpost-ready template with placeholders for the
-live URL, PackageID, and demo video link. Demo video script lives in
-`DEMO_SCRIPT.md`.
+`SUBMISSION.md` is Devpost-ready. `DEMO_SCRIPT.md` is the 90-second
+demo video plan, beat-by-beat.
 
 ---
 
-## 🔐 Security notes (read before submitting!)
+## 🔐 Security notes
 
-- **Encryption seed.** The MVP derives the per-agent AES key from the
-  agent's object id via PBKDF2. This binds the key to the on-chain
-  identity but means anyone who knows the object id (which is public)
-  can derive it. v2 should use Seal threshold encryption keyed to the
-  recipient's wallet pubkey instead.
-- **BYOK OpenAI.** The user's API key is stored in `localStorage` and
-  forwarded to `/api/chat` via a one-shot header. The server never
-  persists it.
-- **Never commit `.env.local`.** It's already in `.gitignore`.
-- **Walrus content is public.** That's why we encrypt before uploading.
+- **MVP encryption.** AES keys are derived from the agent object id via
+  PBKDF2. This binds the key to on-chain identity but means anyone who
+  can read the on-chain object can derive it. v2 should switch to Seal
+  threshold encryption keyed to recipient pubkeys.
+- **BYOK OpenAI.** The key lives only in `localStorage` and is
+  forwarded to `/api/chat` per-request via a header. Server never logs
+  it.
+- **Walrus content is public.** That's why every memory is encrypted
+  before upload.
+- **Heirs cannot mutate.** The frontend hides write affordances in heir
+  mode, and the contract's `add_memory` / `update_persona` /
+  `set_index_blob` only succeed when the caller owns the object — Sui's
+  ownership model enforces this for free.
+- **`.env.local` is in `.gitignore`.** Don't move it.
 
 ---
 
@@ -159,7 +200,7 @@ live URL, PackageID, and demo video link. Demo video script lives in
 ```bash
 # Move tests
 cd move && sui move test
-# Expected: 4 passing tests
+# Expected: 7 passing tests
 
 # TypeScript strict
 cd web && npm run typecheck
@@ -167,7 +208,7 @@ cd web && npm run typecheck
 
 # Production build
 npm run build
-# Expected: 7 routes, all green
+# Expected: 8 routes, all green
 ```
 
 CI runs steps 2 + 3 on every push (`.github/workflows/ci.yml`).
@@ -176,14 +217,17 @@ CI runs steps 2 + 3 on every push (`.github/workflows/ci.yml`).
 
 ## 🗺️ What's next (post-submission)
 
-- Swap the homegrown memory engine for `@mysten-incubation/memwal` once
-  the team ships a hosted relayer (or self-host one).
-- Switch encryption to Seal so agents can be safely transferred
-  without leaking the key.
-- Add NemoClaw / OpenClaw plugin support (zero-config recall hooks).
-- Memory consolidation: roll older memories into the optional
-  `index_blob` to keep on-chain `memory_refs` short.
-- Multi-provider support: Claude, Gemini, local Ollama.
+- **Drop in the official MemWal SDK** once a hosted relayer ships.
+- **Seal integration** so the AES key stops being derivable from the
+  object id (real privacy, even from the chain reader).
+- **Multi-sig override** so a quorum of heirs can unlock without
+  waiting for dormancy (useful for accidents).
+- **Memorial page** — a public read-only landing for grieving family
+  members to access without wallets.
+- **Multi-provider chat.** Claude, Gemini, local Ollama — same memory
+  vault, swappable brain.
+- **NemoClaw / OpenClaw plugins** so existing agent frameworks can
+  plug in AgentVault as their memory backend.
 
 ---
 
@@ -192,8 +236,8 @@ CI runs steps 2 + 3 on every push (`.github/workflows/ci.yml`).
 Built solo in 14 days for the [Tatum × Walrus Hackathon](https://tatum.io/sui-hackathon).
 
 Architecture inspired by Mysten Labs'
-[MemWal SDK](https://github.com/MystenLabs/MemWal) and the broader work
-of the Walrus team on user-owned AI memory.
-
-Powered by [Walrus](https://www.walrus.xyz/), [Sui](https://sui.io/),
+[MemWal SDK](https://github.com/MystenLabs/MemWal). Powered by
+[Walrus](https://www.walrus.xyz/), [Sui](https://sui.io/),
 [Tatum](https://tatum.io/), and OpenAI.
+
+For everyone who has ever wished they'd asked one more question.
