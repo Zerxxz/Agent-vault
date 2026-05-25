@@ -29,12 +29,11 @@ export function AgentVisual() {
           className="relative z-10 drop-shadow-[0_0_40px_rgba(139,92,246,0.4)]"
         >
           <Image
-            src="/mascot.svg"
+            src="/mascot.png"
             alt="AgentVault mascot — a walrus secret agent in a fedora and sunglasses"
-            width={280}
-            height={315}
+            width={300}
+            height={244}
             priority
-            unoptimized
             className="select-none"
           />
         </motion.div>
