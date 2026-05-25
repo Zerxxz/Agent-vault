@@ -18,21 +18,22 @@ export default function Home() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-white/70 backdrop-blur">
-            <span className="size-1.5 animate-pulse rounded-full bg-violet-400" />
-            Tatum × Walrus Hackathon
+          <span className="inline-flex items-center gap-2 rounded-full border border-amber-400/20 bg-amber-500/5 px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-amber-200/80 backdrop-blur">
+            <span className="size-1.5 animate-pulse rounded-full bg-amber-400" />
+            Tatum × Walrus Hackathon — Living Will edition
           </span>
 
           <h1 className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight md:text-7xl">
-            Your AI agent.
+            A mind that
             <br />
-            <span className="gradient-text">Owned forever.</span>
+            <span className="gradient-text">outlives you.</span>
           </h1>
 
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-white/60">
-            Mint an Agent NFT on Sui. Its memory lives on Walrus. Talk to it
-            from anywhere — ChatGPT today, Claude tomorrow, your own
-            chatbot next year. The brain comes with you.
+            Train an AI agent on your voice and your values. Encrypt every
+            memory on Walrus. Pin them to an NFT on Sui. When you go silent
+            — by choice or by fate — your heirs inherit the mind, and they
+            can talk to it forever.
           </p>
 
           <div className="mt-10 flex flex-wrap items-center gap-3">
@@ -50,6 +51,7 @@ export default function Home() {
           <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-white/40">
             <Stat value="Walrus" label="for memory" />
             <Stat value="Sui" label="for ownership" />
+            <Stat value="Dead-man" label="for the gate" />
             <Stat value="BYOK" label="for the brain" />
           </div>
         </motion.div>
@@ -64,46 +66,53 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ─────────── How it works ─────────── */}
+      {/* ─────────── The promise ─────────── */}
       <section className="py-16">
         <div className="mb-10 text-center">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.25em] text-violet-300/80">
-            How it works
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.25em] text-amber-300/80">
+            The promise
           </p>
-          <h2 className="text-3xl font-bold md:text-4xl">
-            Memory you can take with you.
+          <h2 className="text-3xl font-bold leading-tight md:text-4xl">
+            Your wisdom shouldn't die with you.
           </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-sm text-white/55">
+            Every conversation you have today becomes a memory tomorrow.
+            Every memory is encrypted, signed by you, and waiting in
+            Walrus. The day someone you love needs your voice, it's there.
+          </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
           <Step
             n={1}
-            title="Mint the agent"
-            body="Pick a persona, an avatar, a name. The Move package mints an Agent NFT to your wallet."
-            tag="Sui"
+            tag="Mint"
+            title="Pick a persona"
+            body="Templates for research, coaching, family voice — or write your own. The Move contract mints an Agent NFT to your wallet."
           />
           <Step
             n={2}
-            title="Chat normally"
-            body="Talk to your agent like any chatbot. Every meaningful turn is distilled into atomic memories."
-            tag="OpenAI BYOK"
+            tag="Train"
+            body="Talk to it like a chatbot. The model distills atomic memories from each turn, encrypts them, and pushes one signed transaction per batch."
+            title="Live with it"
           />
           <Step
             n={3}
-            title="Memories pin to chain"
-            body="Each memory is encrypted, uploaded to Walrus, and its blob_id appended to your Agent NFT."
-            tag="Walrus"
+            tag="Inherit"
+            title="Pass it on"
+            body="Add heir wallets. Set a dormancy window. If you go silent, heirs unlock the agent — but in memorial mode only. The soul stays as you wrote it."
+            warm
           />
         </div>
       </section>
 
-      {/* ─────────── Your agents ─────────── */}
+      {/* ─────────── Your roster ─────────── */}
       <section className="py-16">
         <div className="mb-6 flex items-end justify-between">
           <div>
             <h2 className="text-2xl font-bold md:text-3xl">Your roster</h2>
             <p className="mt-1 text-sm text-white/50">
-              Agents you've minted, ready when you are.
+              Agents you've minted. Status updates live as the dormancy
+              clock ticks.
             </p>
           </div>
           <GlowButton
@@ -117,38 +126,86 @@ export default function Home() {
         <AgentList />
       </section>
 
-      {/* ─────────── The pitch ─────────── */}
+      {/* ─────────── Use cases ─────────── */}
       <section className="py-16">
         <div className="mb-10 text-center">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.25em] text-violet-300/80">
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.25em] text-amber-300/80">
             Why it matters
           </p>
           <h2 className="text-3xl font-bold md:text-4xl">
-            Verifiable. Available. Portable.
+            More than nostalgia. Real continuity.
           </h2>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Feature
-            emoji="🔍"
-            title="Verifiable"
-            body="Every memory has a blob_id signed into the Move object. Tamper-evident by design."
+            emoji="🤍"
+            title="Family voice"
+            body="Your kids ask 'how would Mom handle this?' a decade from now — and the answer comes in her own words."
+            warm
           />
           <Feature
-            emoji="🛡️"
-            title="Available"
-            body="Walrus erasure-codes your blobs across many storage nodes. No single point of failure."
+            emoji="📜"
+            title="Living will"
+            body="Passwords, account hints, the where-is-everything map. Dormant until your heirs need it."
           />
           <Feature
-            emoji="🚚"
-            title="Portable"
-            body="Your agent's brain isn't trapped in one provider. Switch models without losing context."
+            emoji="🦉"
+            title="Mentor archive"
+            body="Founders, teachers, elders — bequeath your reasoning patterns to the next generation, not just your money."
           />
           <Feature
-            emoji="🤝"
-            title="Shareable"
-            body="Transfer the NFT or share read access. Pair-program with your friend's agent."
+            emoji="📰"
+            title="Journalist's switch"
+            body="Source memories that auto-publish to your designated colleagues if you stop pinging."
           />
+        </div>
+      </section>
+
+      {/* ─────────── How the gate works ─────────── */}
+      <section className="py-16">
+        <div className="grid gap-8 md:grid-cols-2 md:items-center">
+          <div className="rounded-3xl border border-amber-400/20 bg-gradient-to-br from-amber-500/[0.05] to-violet-500/[0.05] p-8 backdrop-blur-xl">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.25em] text-amber-300/80">
+              The gate
+            </p>
+            <h3 className="text-2xl font-bold">
+              A dead-man's switch you actually use.
+            </h3>
+            <p className="mt-4 text-sm text-white/60">
+              Every chat, every persona edit, every heir tweak counts as
+              "I'm alive." Set the silence window — 5 minutes for a demo,
+              180 days for a real legacy. When the threshold passes, the
+              Move contract's <code className="font-mono text-xs">is_dormant_at</code>{" "}
+              tells every client: this mind has gone quiet.
+            </p>
+            <p className="mt-3 text-sm text-white/60">
+              Heirs don't take the NFT. They don't change anything. They
+              just open the door, sit down, and ask.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <Pill
+              icon="✓"
+              tone="emerald"
+              title="Active"
+              body="Owner has chatted recently. Only the owner can read or write."
+            />
+            <Pill
+              icon="…"
+              tone="amber"
+              title="Dormant"
+              body="Threshold passed. Listed heirs gain read access — chat, but in memorial mode."
+              warm
+            />
+            <Pill
+              icon="🔒"
+              tone="muted"
+              title="Stranger"
+              body="Not the owner. Not on the heir list. Locked screen, no exceptions."
+            />
+          </div>
         </div>
       </section>
 
@@ -163,7 +220,7 @@ export default function Home() {
         >
           Tatum × Walrus Hackathon
         </a>
-        . Inspired by Mysten Labs'{" "}
+        . Architecture inspired by Mysten Labs'{" "}
         <a
           href="https://github.com/MystenLabs/MemWal"
           target="_blank"
@@ -172,7 +229,7 @@ export default function Home() {
         >
           MemWal SDK
         </a>
-        .
+        . Powered by Walrus, Sui, and Tatum.
       </footer>
     </div>
   );
@@ -191,26 +248,40 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function Step({
   n,
+  tag,
   title,
   body,
-  tag,
+  warm,
 }: {
   n: number;
+  tag: string;
   title: string;
   body: string;
-  tag: string;
+  warm?: boolean;
 }) {
   return (
     <motion.div
       whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
-      className="glass glass-hover relative gradient-border overflow-hidden rounded-2xl p-6"
+      className={`glass glass-hover relative gradient-border overflow-hidden rounded-2xl p-6 ${
+        warm ? "border-amber-400/20" : ""
+      }`}
     >
       <div className="mb-4 flex items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-violet-500/15 font-mono text-sm text-violet-300">
+        <span
+          className={`flex h-8 w-8 items-center justify-center rounded-full font-mono text-sm ${
+            warm
+              ? "bg-amber-500/15 text-amber-200"
+              : "bg-violet-500/15 text-violet-300"
+          }`}
+        >
           {n}
         </span>
-        <span className="text-[10px] uppercase tracking-widest text-white/40">
+        <span
+          className={`text-[10px] uppercase tracking-widest ${
+            warm ? "text-amber-300/70" : "text-white/40"
+          }`}
+        >
           {tag}
         </span>
       </div>
@@ -224,20 +295,61 @@ function Feature({
   emoji,
   title,
   body,
+  warm,
 }: {
   emoji: string;
   title: string;
   body: string;
+  warm?: boolean;
 }) {
   return (
     <motion.div
       whileHover={{ y: -3 }}
       transition={{ duration: 0.2 }}
-      className="glass glass-hover rounded-2xl p-5"
+      className={`glass glass-hover rounded-2xl p-5 ${
+        warm ? "border border-amber-400/15" : ""
+      }`}
     >
       <div className="mb-3 text-2xl">{emoji}</div>
       <h3 className="mb-1.5 font-semibold">{title}</h3>
       <p className="text-sm text-white/55">{body}</p>
     </motion.div>
+  );
+}
+
+function Pill({
+  icon,
+  tone,
+  title,
+  body,
+  warm,
+}: {
+  icon: string;
+  tone: "emerald" | "amber" | "muted";
+  title: string;
+  body: string;
+  warm?: boolean;
+}) {
+  const toneClasses = {
+    emerald: "border-emerald-400/30 bg-emerald-500/10 text-emerald-300",
+    amber: "border-amber-400/30 bg-amber-500/10 text-amber-300",
+    muted: "border-white/10 bg-white/5 text-white/60",
+  } as const;
+  return (
+    <div
+      className={`flex items-start gap-4 rounded-2xl border bg-white/[0.02] p-4 ${
+        warm ? "border-amber-400/15" : "border-white/10"
+      }`}
+    >
+      <span
+        className={`flex size-9 shrink-0 items-center justify-center rounded-full border font-mono text-sm ${toneClasses[tone]}`}
+      >
+        {icon}
+      </span>
+      <div>
+        <p className="font-medium">{title}</p>
+        <p className="mt-0.5 text-sm text-white/55">{body}</p>
+      </div>
+    </div>
   );
 }

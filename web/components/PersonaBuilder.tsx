@@ -1,15 +1,26 @@
 "use client";
 
+// Persona builder for new agents. In addition to name + persona +
+// avatar, the user picks a *dormancy threshold* — the silence window
+// before heirs gain access. Default is 180 days; demos can use the
+// "5 minutes" preset to actually show the unlock during a walk-through.
+
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
 } from "@mysten/dapp-kit";
+import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { EmojiPicker } from "./EmojiPicker";
 import { GlowButton } from "./GlowButton";
 import { buildMintAgentTx } from "@/lib/contract";
+import {
+  DEFAULT_DORMANCY_MS,
+  DORMANCY_PRESETS,
+  formatDuration,
+} from "@/lib/inheritance";
 
 const TEMPLATES = [
   {
@@ -31,10 +42,10 @@ const TEMPLATES = [
     avatar: "🦊",
   },
   {
-    label: "Code reviewer",
+    label: "Family voice",
     persona:
-      "You are a senior staff engineer. Critique code rigorously: readability, edge cases, naming, and the smallest invariant that breaks first.",
-    avatar: "🤖",
+      "You speak in my own voice — warm, dry-humoured, patient. You'll be inherited by my family one day, so always tell the truth, share what I'd share, and don't pretend to know what I never did.",
+    avatar: "🤍",
   },
 ];
 
@@ -52,6 +63,7 @@ export function PersonaBuilder() {
   const [name, setName] = useState("");
   const [persona, setPersona] = useState("");
   const [avatar, setAvatar] = useState("🧠");
+  const [dormancyMs, setDormancyMs] = useState<number>(DEFAULT_DORMANCY_MS);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   function applyTemplate(tpl: (typeof TEMPLATES)[number]) {
@@ -80,9 +92,9 @@ export function PersonaBuilder() {
         name: name.trim(),
         persona: persona.trim(),
         avatar,
+        dormancyThresholdMs: dormancyMs,
       });
       const result = await signAndExecute({ transaction: tx });
-
       const agentId = await tryFindAgentId(result.digest);
 
       void import("canvas-confetti").then((mod) => {
@@ -90,14 +102,12 @@ export function PersonaBuilder() {
           particleCount: 80,
           spread: 70,
           origin: { y: 0.6 },
-          colors: ["#a78bfa", "#22d3ee", "#e879f9", "#f8fafc"],
+          colors: ["#a78bfa", "#22d3ee", "#e879f9", "#fbbf24"],
         });
       });
 
       setStatus({ kind: "done", agentId });
-
       if (agentId) {
-        // Tiny pause so the user sees the celebration before nav.
         setTimeout(() => router.push(`/agent/${agentId}`), 1200);
       }
     } catch (err) {
@@ -163,6 +173,29 @@ export function PersonaBuilder() {
           disabled={busy}
           className="w-full"
         />
+      </Field>
+
+      <Field
+        label="Dormancy threshold"
+        hint={`After ${formatDuration(dormancyMs)} without activity, your heirs can read this agent. You can change this later in the Legacy page.`}
+      >
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {DORMANCY_PRESETS.map((p) => (
+            <button
+              type="button"
+              key={p.ms}
+              onClick={() => setDormancyMs(p.ms)}
+              className={clsx(
+                "rounded-lg border px-3 py-2 text-xs transition",
+                dormancyMs === p.ms
+                  ? "border-amber-400 bg-amber-500/15 text-amber-200"
+                  : "border-white/10 bg-white/[0.02] text-white/60 hover:border-white/20",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
       </Field>
 
       <div className="flex items-center justify-between">

@@ -1,31 +1,42 @@
 "use client";
 
-// The main chat surface — talks to /api/chat, streams the reply, and
-// (in the background) extracts + persists durable memories on each
-// completed turn:
+// The main chat surface. Behaviour is role-aware:
 //
-//   1. user types  →  searchRelevant() pulls top-K memories
-//   2. POST /api/chat with persona + memory recall block as `system`
-//   3. read the plain-text stream into local message state
-//   4. on stream end, run extractMemories() against the exchange
-//   5. for each new memory:
-//        a. persistMemory()  (embed + encrypt + Walrus PUT + IndexedDB)
-//        b. sign a single multi-call Sui tx that adds them all
+//   - owner: full chat with privacy toggle. After every assistant turn
+//     we extract atomic memories, encrypt them, push to Walrus, and
+//     batch-sign a single `add_memory` tx (with `visibility = private`
+//     when the toggle is on, else `heirs-visible`).
 //
-// Step 5 runs in the background so the user can send their next
-// message immediately. Failures surface as a non-blocking toast.
+//   - heir (only when the agent is dormant): "memorial mode". The agent
+//     still answers using owner-visible memories from Walrus, but we
+//     never extract or persist new memories — the soul is read-only.
+//     The privacy toggle is hidden.
+//
+//   - stranger / non-dormant heir: ChatInterface isn't rendered at all
+//     (the parent page shows a locked screen).
 
 import {
   useCurrentAccount,
   useSignAndExecuteTransaction,
-  useSuiClient,
 } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState, useCallback } from "react";
+import clsx from "clsx";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ChatBubble, type ChatRole } from "./ChatBubble";
 import { GlowButton } from "./GlowButton";
 import { config } from "@/lib/config";
+import {
+  VISIBILITY_HEIRS,
+  VISIBILITY_PRIVATE,
+  type Visibility,
+} from "@/lib/contract";
+import {
+  type AgentChainData,
+  type AgentRole,
+  type DormancyState,
+  visibleMemoryFlags,
+} from "@/lib/inheritance";
 import { extractMemories } from "@/lib/llm";
 import {
   persistMemory,
@@ -33,14 +44,6 @@ import {
   searchRelevant,
 } from "@/lib/memory";
 import { getStoredOpenAIKey, listMemories } from "@/lib/storage";
-
-export type AgentDescriptor = {
-  id: string;
-  name: string;
-  persona: string;
-  avatar: string;
-  memoryBlobIds: string[];
-};
 
 type Message = {
   id: string;
@@ -52,10 +55,20 @@ type Toast = { id: string; text: string; tone: "info" | "error" | "success" };
 
 const MAX_RECALL = 5;
 
-export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
+export function ChatInterface({
+  agent,
+  role,
+  dormancy,
+}: {
+  agent: AgentChainData;
+  role: AgentRole;
+  dormancy: DormancyState;
+}) {
   const account = useCurrentAccount();
-  const suiClient = useSuiClient();
   const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+
+  const isOwner = role === "owner";
+  const isHeirActive = role === "heir" && dormancy.isDormant;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -63,6 +76,7 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
   const [streamText, setStreamText] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [rehydrating, setRehydrating] = useState<{ done: number; total: number } | null>(null);
+  const [privacyMode, setPrivacyMode] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // ---- One-time rehydrate of the local memory cache ----------------
@@ -70,9 +84,7 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
     void (async () => {
       const cached = await listMemories(agent.id);
       const cachedIds = new Set(cached.map((m) => m.blobId));
-      const missing = agent.memoryBlobIds.filter(
-        (b) => !cachedIds.has(b),
-      );
+      const missing = agent.memoryBlobIds.filter((b) => !cachedIds.has(b));
       if (missing.length === 0) return;
 
       setRehydrating({ done: 0, total: missing.length });
@@ -89,7 +101,6 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
         );
       }
     })();
-    // We only re-run if the agent id or its blob list changed.
   }, [agent.id, agent.memoryBlobIds.join(",")]);
 
   // ---- Auto-scroll on new content ----------------------------------
@@ -131,12 +142,14 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
       setStreamText("");
 
       try {
-        // --- 1. Recall relevant memories ---
+        // --- 1. Recall — filter by what the current viewer is allowed to see.
+        const visibilityFilter = visibleMemoryFlags(role, dormancy);
         const hits = await searchRelevant({
           agentObjectId: agent.id,
           query: text,
           apiKey,
           k: MAX_RECALL,
+          visibilityFilter,
         });
 
         const memoryBlock =
@@ -146,9 +159,13 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
                 .join("\n")}\n\nUse these only if directly relevant.`
             : "";
 
-        const system = agent.persona + memoryBlock;
+        const memorialPreamble = isHeirActive
+          ? `\n\nIMPORTANT: The original owner is no longer active. Speak in their voice and from their preserved memories. Do not invent new facts about them. If asked something the memories don't cover, say so honestly and offer to share what you do know.`
+          : "";
 
-        // --- 2. Stream reply from /api/chat ---
+        const system = agent.persona + memorialPreamble + memoryBlock;
+
+        // --- 2. Stream reply from /api/chat
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: {
@@ -192,7 +209,10 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
         setStreamText("");
         setStreaming(false);
 
-        // --- 3. Extract + persist memories in the background ---
+        // --- 3. Memory extraction is OWNER-ONLY. Heirs read the soul,
+        //        they don't shape it.
+        if (!isOwner) return;
+
         void (async () => {
           try {
             const extracted = await extractMemories({
@@ -202,6 +222,10 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
             });
             if (extracted.length === 0) return;
 
+            const memoryVisibility: Visibility = privacyMode
+              ? VISIBILITY_PRIVATE
+              : VISIBILITY_HEIRS;
+
             const persisted: { blobId: string; category: string }[] = [];
             for (const mem of extracted) {
               try {
@@ -209,16 +233,17 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
                   agentObjectId: agent.id,
                   text: mem.text,
                   category: mem.category,
+                  visibility: memoryVisibility,
                   apiKey,
                 });
                 persisted.push({ blobId, category: mem.category });
               } catch {
-                // Ignore single-memory failures so the rest still land.
+                // Tolerate partial failures.
               }
             }
             if (persisted.length === 0) return;
 
-            // Sign a single tx that pushes every blob_id at once.
+            // One tx for the batch — N moveCalls, one signature.
             const tx = new Transaction();
             for (const m of persisted) {
               tx.moveCall({
@@ -227,6 +252,7 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
                   tx.object(agent.id),
                   tx.pure.string(m.blobId),
                   tx.pure.string(m.category),
+                  tx.pure.u8(memoryVisibility),
                   tx.object.clock(),
                 ],
               });
@@ -235,16 +261,16 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
             await signAndExecute({ transaction: tx });
             pushToast(
               "success",
-              `Remembered ${persisted.length} new ${
-                persisted.length === 1 ? "thing" : "things"
-              }.`,
+              `Remembered ${persisted.length} ${
+                memoryVisibility === VISIBILITY_PRIVATE
+                  ? "private"
+                  : "heir-visible"
+              } ${persisted.length === 1 ? "thing" : "things"}.`,
             );
           } catch (err) {
             pushToast(
               "error",
-              `Memory failed: ${
-                err instanceof Error ? err.message : "unknown"
-              }`,
+              `Memory failed: ${err instanceof Error ? err.message : "unknown"}`,
             );
           }
         })();
@@ -257,7 +283,18 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
         );
       }
     },
-    [agent.id, agent.persona, messages, signAndExecute, streaming],
+    [
+      agent.id,
+      agent.persona,
+      messages,
+      streaming,
+      role,
+      dormancy,
+      isOwner,
+      isHeirActive,
+      privacyMode,
+      signAndExecute,
+    ],
   );
 
   function onSubmit(e: React.FormEvent) {
@@ -267,6 +304,19 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
 
   return (
     <div className="relative flex h-[640px] flex-col rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-xl">
+      {/* Memorial-mode banner for heirs */}
+      {isHeirActive && (
+        <div className="flex items-center justify-center gap-2 border-b border-amber-400/20 bg-gradient-to-r from-amber-500/5 via-amber-500/10 to-amber-500/5 px-5 py-2 text-xs">
+          <span className="size-1.5 rounded-full bg-amber-400" />
+          <span className="font-medium uppercase tracking-[0.2em] text-amber-200">
+            Memorial mode
+          </span>
+          <span className="text-amber-200/70">
+            · speaking with {agent.name}'s preserved memory
+          </span>
+        </div>
+      )}
+
       {/* Rehydrate banner */}
       <AnimatePresence>
         {rehydrating && (
@@ -290,13 +340,15 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
               initial={{ opacity: 0, x: 12 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 12 }}
-              className={
-                t.tone === "error"
-                  ? "rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs text-red-200"
-                  : t.tone === "success"
-                    ? "rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-200"
-                    : "rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white/80"
-              }
+              className={clsx(
+                "rounded-lg px-3 py-1.5 text-xs",
+                t.tone === "error" &&
+                  "border border-red-500/30 bg-red-500/10 text-red-200",
+                t.tone === "success" &&
+                  "border border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+                t.tone === "info" &&
+                  "border border-white/10 bg-black/40 text-white/80",
+              )}
             >
               {t.text}
             </motion.div>
@@ -310,11 +362,14 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
           <div className="flex h-full flex-col items-center justify-center text-center text-sm text-white/40">
             <span className="mb-3 text-5xl">{agent.avatar}</span>
             <p className="font-medium text-white/70">
-              Say hi to {agent.name}
+              {isHeirActive
+                ? `Ask ${agent.name} something — they'd want you to`
+                : `Say hi to ${agent.name}`}
             </p>
             <p className="mx-auto mt-1 max-w-xs">
-              Every meaningful turn becomes a memory on Walrus, signed by
-              you on Sui.
+              {isHeirActive
+                ? "Their voice is preserved on Walrus. New conversations don't change who they were."
+                : "Every meaningful turn becomes a memory on Walrus, signed by you on Sui."}
             </p>
           </div>
         )}
@@ -338,6 +393,36 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
         )}
       </div>
 
+      {/* Privacy toggle (owner only) */}
+      {isOwner && (
+        <div className="flex items-center justify-between border-t border-white/5 px-5 py-2 text-xs">
+          <button
+            type="button"
+            onClick={() => setPrivacyMode((p) => !p)}
+            className={clsx(
+              "flex items-center gap-2 rounded-full border px-3 py-1 transition",
+              privacyMode
+                ? "border-amber-400/40 bg-amber-500/10 text-amber-200"
+                : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10",
+            )}
+          >
+            <span
+              className={clsx(
+                "inline-block h-2 w-4 rounded-full transition",
+                privacyMode ? "bg-amber-400" : "bg-white/30",
+              )}
+            />
+            {privacyMode ? "Private mode — heirs won't see" : "Heirs-visible mode (default)"}
+          </button>
+          <span className="text-white/30">
+            New memories tagged{" "}
+            <code className="font-mono">
+              {privacyMode ? "visibility=0" : "visibility=1"}
+            </code>
+          </span>
+        </div>
+      )}
+
       {/* Composer */}
       <form
         onSubmit={onSubmit}
@@ -347,9 +432,11 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={
-            account
-              ? `Message ${agent.name}…`
-              : "Connect your wallet to chat"
+            !account
+              ? "Connect your wallet to chat"
+              : isHeirActive
+                ? `Ask ${agent.name} something…`
+                : `Message ${agent.name}…`
           }
           disabled={!account || streaming}
           className="flex-1"

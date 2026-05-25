@@ -5,6 +5,7 @@
 // + 1536-dim embeddings per memory) and survives page reloads.
 
 import { createStore, get, set, keys, del, clear } from "idb-keyval";
+import type { Visibility } from "./contract";
 
 const memStore = createStore("agentvault", "memories");
 
@@ -16,6 +17,8 @@ export type LocalMemory = {
   /** OpenAI embedding (text-embedding-3-small ⇒ 1536 floats). */
   embedding: number[];
   category: string;
+  /** Mirrors the on-chain visibility flag. Optional for backward compat. */
+  visibility?: Visibility;
   createdAtMs: number;
 };
 
