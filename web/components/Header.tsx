@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
@@ -18,10 +19,23 @@ export function Header() {
     >
       <Link
         href="/"
-        className="flex items-center gap-2 text-base font-semibold tracking-tight"
+        className="flex items-center gap-2.5 tracking-tight"
+        aria-label="Heirloom — home"
       >
-        <span className="text-xl">🕯️</span>
-        <span>Heirloom</span>
+        {/* Mascot tile — same artwork as the hero, scaled down. The
+            mascot PNG is portrait (≈0.67), so we constrain by height
+            and let width auto-derive. */}
+        <Image
+          src="/mascot.png"
+          alt=""
+          width={36}
+          height={54}
+          priority
+          className="h-9 w-auto select-none drop-shadow-[0_0_10px_rgba(167,139,250,0.45)]"
+        />
+        <span className="font-display text-2xl leading-none tracking-wide">
+          Heirloom
+        </span>
       </Link>
 
       <nav className="hidden items-center gap-1 text-sm md:flex">

@@ -29,6 +29,10 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-geist-mono)", "ui-monospace", "monospace"],
+        // Display serif used for the "Heirloom" wordmark + select hero
+        // accents. Falls back to platform serifs if the web font is
+        // still loading or blocked.
+        display: ["var(--font-italiana)", "Georgia", "serif"],
       },
       backdropBlur: {
         xs: "4px",
