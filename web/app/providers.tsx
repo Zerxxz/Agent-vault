@@ -9,11 +9,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@mysten/dapp-kit/dist/index.css";
 import { ReactNode, useState } from "react";
 
+const TATUM_API_KEY = process.env.TATUM_API_KEY ?? "";
+
 const { networkConfig } = createNetworkConfig({
   mainnet: {
-    url:
-      process.env.NEXT_PUBLIC_TATUM_RPC_URL ??
-      "https://sui-mainnet.gateway.tatum.io/",
+    url: `${process.env.NEXT_PUBLIC_TATUM_RPC_URL ?? "https://sui-mainnet.gateway.tatum.io/"}${TATUM_API_KEY ? `?apiKey=${TATUM_API_KEY}` : ""}`,
   },
   testnet: { url: "https://sui-testnet.gateway.tatum.io/" },
 });
