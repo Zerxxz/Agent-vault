@@ -113,15 +113,6 @@ html {
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 0;
-}
-.aurora-blob {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.45;
-  mix-blend-mode: screen;
-  will-change: transform;
 }
 
 .grain {
@@ -131,6 +122,24 @@ html {
   z-index: 1;
   opacity: 0.04;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+}
+
+/* =============================================================
+   Marquee — single track, content rendered twice, animated to
+   translateX(-50%) for a seamless infinite loop (walrus.xyz pattern).
+   ============================================================= */
+
+.marquee-track {
+  animation: marquee 35s linear infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 /* =============================================================
@@ -244,9 +253,9 @@ input[type="datetime-local"] {
     transition-duration: 0.01ms !important;
   }
 
-  /* Hide the looping background video for users who opt out of motion;
-     the static aurora gradient still carries the page's colour. */
-  .bg-video video {
-    display: none;
+  /* Pause the marquee track instead of jumping it instantly to its
+     end-state — that would just snap content out of view. */
+  .marquee-track {
+    animation-play-state: paused !important;
   }
 }

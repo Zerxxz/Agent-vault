@@ -5,7 +5,6 @@ import { Italiana } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AuroraBackground } from "@/components/AuroraBackground";
-import { VideoBackground } from "@/components/VideoBackground";
 
 // Italiana — single-weight Renaissance serif. Used only for the "Heirloom"
 // brand mark in the header and any oversized hero word that wants the
@@ -40,12 +39,8 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable} ${italiana.variable}`}
     >
       <body className="min-h-screen overflow-x-hidden font-sans antialiased">
-        {/* Background stack, bottom-up:
-              1. VideoBackground — looping MP4 with vignette
-              2. AuroraBackground — drifting radial blobs (mix-blend-mode: screen)
-              3. .grain — subtle SVG noise overlay
-            All three are pointer-events: none and below z-10 content. */}
-        <VideoBackground />
+        {/* Background stack: walrus.xyz-inspired mesh aurora + grain.
+              All layers are pointer-events: none and below z-10 content. */}
         <AuroraBackground />
         <div className="grain" />
         <Providers>
