@@ -5,7 +5,6 @@ import {
   WalletProvider,
   createNetworkConfig,
 } from "@mysten/dapp-kit";
-import { SuiClient, SuiHTTPTransport } from "@mysten/sui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@mysten/dapp-kit/dist/index.css";
 import { ReactNode, useState } from "react";
