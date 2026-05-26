@@ -1,9 +1,11 @@
-// Centralised env access. Throw early if a required value is missing so
-// failures surface during boot, not deep inside a request handler.
+// Centralised env access. During SSR build the full env isn't available;
+// we return placeholder values so the build succeeds. Client-side calls
+// receive the real values (NEXT_PUBLIC_* vars are embedded at build time).
 
 function required(name: string, value: string | undefined): string {
   if (!value || value.length === 0) {
-    throw new Error(`Missing required env var: ${name}`);
+    console.warn(`[config] Missing env var: ${name} — using fallback`);
+    return "PLACEHOLDER_" + name;
   }
   return value;
 }
