@@ -24,6 +24,7 @@ import { Transaction } from "@mysten/sui/transactions";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ChatBubble, type ChatRole } from "./ChatBubble";
+import { Avatar } from "./Avatar";
 import { GlowButton } from "./GlowButton";
 import { config } from "@/lib/config";
 import { extractMemories } from "@/lib/llm";
@@ -308,7 +309,7 @@ export function ChatInterface({ agent }: { agent: AgentDescriptor }) {
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-6">
         {messages.length === 0 && !streaming && (
           <div className="flex h-full flex-col items-center justify-center text-center text-sm text-white/40">
-            <span className="mb-3 text-5xl">{agent.avatar}</span>
+            <Avatar src={agent.avatar} size={72} className="mb-3" />
             <p className="font-medium text-white/70">
               Say hi to {agent.name}
             </p>
