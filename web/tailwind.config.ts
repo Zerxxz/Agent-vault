@@ -44,27 +44,28 @@ const config: Config = {
         card: "0 8px 32px rgba(0, 0, 0, 0.4)",
       },
       animation: {
-        "aurora-1": "aurora1 22s ease-in-out infinite alternate",
-        "aurora-2": "aurora2 28s ease-in-out infinite alternate",
-        "aurora-3": "aurora3 35s ease-in-out infinite alternate",
+        "aurora-1": "aurora1 38s ease-in-out infinite alternate",
+        "aurora-2": "aurora2 52s ease-in-out infinite alternate",
+        "aurora-3": "aurora3 75s ease-in-out infinite alternate",
         float: "float 6s ease-in-out infinite",
         "pulse-soft": "pulseSoft 3s ease-in-out infinite",
         shimmer: "shimmer 2.5s linear infinite",
         "fade-in": "fadeIn 0.6s ease-out forwards",
         "spin-slow": "spin 12s linear infinite",
+        marquee: "marquee 35s linear infinite",
       },
       keyframes: {
         aurora1: {
           "0%": { transform: "translate(0%, 0%) scale(1)" },
-          "100%": { transform: "translate(15%, 20%) scale(1.15)" },
+          "100%": { transform: "translate(8%, 12%) scale(1.08)" },
         },
         aurora2: {
           "0%": { transform: "translate(0%, 0%) scale(1)" },
-          "100%": { transform: "translate(-15%, -10%) scale(1.1)" },
+          "100%": { transform: "translate(-10%, -6%) scale(1.05)" },
         },
         aurora3: {
           "0%": { transform: "translate(0%, 0%) scale(1)" },
-          "100%": { transform: "translate(-10%, 25%) scale(0.92)" },
+          "100%": { transform: "translate(-6%, 14%) scale(0.96)" },
         },
         float: {
           "0%, 100%": { transform: "translateY(0px)" },
@@ -81,6 +82,10 @@ const config: Config = {
         fadeIn: {
           from: { opacity: "0", transform: "translateY(8px)" },
           to: { opacity: "1", transform: "translateY(0)" },
+        },
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
         },
       },
     },

@@ -5,6 +5,7 @@ import { AgentList } from "@/components/AgentList";
 import { AgentVisual } from "@/components/AgentVisual";
 import { GlowButton } from "@/components/GlowButton";
 import { Header } from "@/components/Header";
+import { Marquee } from "@/components/Marquee";
 
 export default function Home() {
   return (
@@ -65,6 +66,11 @@ export default function Home() {
           <AgentVisual />
         </motion.div>
       </section>
+
+      {/* ─────────── Marquee — full-bleed scrolling brand band ─────────── */}
+      <div className="-mx-6 my-8 md:my-12">
+        <Marquee />
+      </div>
 
       {/* ─────────── The promise ─────────── */}
       <section className="py-16">
