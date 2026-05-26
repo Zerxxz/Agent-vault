@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # =====================================================================
-# Publish the AgentVault Move package to Sui mainnet.
+# Publish the Heirloom Move package to Sui mainnet.
+# (The on-chain identifier remains `agent_vault::agent` for the legacy
+#  package id; "Heirloom" is the user-facing brand.)
 #
 # Prereqs:
 #   1. `sui` CLI installed: https://docs.sui.io/guides/developer/getting-started/sui-install

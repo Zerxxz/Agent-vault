@@ -1,4 +1,4 @@
-# AgentVault — Living Will Edition · Hackathon Submission
+# Heirloom — Hackathon Submission
 
 > **A mind that outlives you.**
 > Submission for the **Tatum × Walrus Hackathon** (May 23 – Jun 6).
@@ -7,9 +7,9 @@
 
 ## 🎯 Elevator pitch
 
-AgentVault is the first AI agent that can be inherited. Train it on your
-voice and values today. List the wallets you love. When you go silent —
-by choice, by absence, or by fate — the Move contract unlocks the agent
+Heirloom is the first AI you can pass down. Train it on your voice
+and values today. List the wallets you love. When you go silent — by
+choice, by absence, or by fate — the Move contract unlocks the agent
 for your heirs and they can talk to it forever, in your own preserved
 voice.
 
@@ -17,6 +17,10 @@ Memories live encrypted on **Walrus**. Ownership + the dead-man's
 switch live on **Sui**, accessed through a **Tatum** RPC gateway.
 Architecture inspired by Mysten Labs'
 [MemWal SDK](https://github.com/MystenLabs/MemWal).
+
+> **A note on names.** The repo is `Agent-vault` and the on-chain Move
+> package is `agent_vault::agent` — those are legacy identifiers kept
+> stable for the published package. The user-facing brand is Heirloom.
 
 ---
 
@@ -31,10 +35,13 @@ journal can't talk back. The closest existing analogue — a notarized
 will — only opens once and only contains what you remembered to write.
 
 Walrus's MemWal SDK launched in May with the right framing: memory
-should be **verifiable, available, portable, shareable**. AgentVault
+should be **verifiable, available, portable, shareable**. Heirloom
 takes those four words seriously and adds a fifth: **inheritable**.
 This is what MemWal could become at the human layer, not just the
 developer layer.
+
+The name says it. An heirloom is a thing you pass down because the
+person who owned it can't anymore. We made one out of an AI.
 
 ---
 
@@ -177,7 +184,7 @@ many facts the LLM extracted.
 
 | Item                         | Link                                                              |
 | ---------------------------- | ----------------------------------------------------------------- |
-| Live demo                    | `https://agent-vault.vercel.app` *(after deploy)*                  |
+| Live demo                    | `https://heirloom.vercel.app` *(after deploy)*                     |
 | Source code                  | `https://github.com/Zerxxz/Agent-vault`                            |
 | Move package on Sui Mainnet  | `0x...` *(after publish, paste here)*                              |
 | Demo video                   | YouTube link *(see DEMO_SCRIPT.md)*                                |

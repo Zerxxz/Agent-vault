@@ -16,7 +16,7 @@
 - **Dormancy preset:** mint Aria with the **5-minute demo** preset so
   the unlock happens during the recording. (Or pre-record the wait.)
 - **Tabs:**
-  - AgentVault tab signed in as Wallet A
+  - Heirloom tab signed in as Wallet A
   - A second window/profile signed in as Wallet B
   - <https://suiscan.xyz> open at Aria's object id
 
@@ -26,10 +26,10 @@
 
 ### 0:00 – 0:08 · Hook (face-cam, talking head)
 > "When my friend's dad died, the worst part wasn't the absence. It
-> was the questions she never got to ask. AgentVault tries to fix
+> was the questions she never got to ask. Heirloom tries to fix
 > that — on chain."
 
-**On screen:** title card "🧠 AgentVault" with tagline
+**On screen:** title card "🕯️ Heirloom" with tagline
 *"A mind that outlives you."*
 
 ### 0:08 – 0:18 · The pitch (voice-over, landing page)
@@ -86,7 +86,7 @@ The model responds, weaving in the memory we wrote in beat 3.
 
 ### 1:08 – 1:20 · Why this matters (face-cam)
 > "Cloud accounts get deleted. Voicemails are 30 seconds long. A
-> printed will only opens once. AgentVault lets the people you love
+> printed will only opens once. Heirloom lets the people you love
 > ask one more question — and one more after that — for as long as
 > they need to."
 
@@ -96,7 +96,7 @@ The model responds, weaving in the memory we wrote in beat 3.
 - The 70-line `agent.move` source
 
 ### 1:20 – 1:30 · Call to action
-> "Try it at **agent-vault.vercel.app**. Open source on GitHub. Built
+> "Try it at **heirloom.vercel.app**. Open source on GitHub. Built
 > solo in 14 days. Walrus, Sui, Tatum — three protocols, one
 > inheritance."
 
@@ -119,7 +119,7 @@ outlives you."*
 
 - [ ] Recording uploaded to YouTube (Unlisted)
 - [ ] Thumbnail = the gold "Memorial mode" banner moment
-- [ ] Title: `AgentVault — A mind that outlives you · Tatum × Walrus Hackathon`
+- [ ] Title: `Heirloom — A mind that outlives you · Tatum × Walrus Hackathon`
 - [ ] Description includes GitHub link + live demo + Move PackageID
 - [ ] Captions / subtitles uploaded
 - [ ] `SUBMISSION.md` updated with the live URL + PackageID + video link

@@ -1,18 +1,23 @@
-# 🧠 AgentVault — Living Will Edition
+# 🕯️ Heirloom
 
 > **A mind that outlives you.**
 > Submission for the **Tatum × Walrus Hackathon** (Build on Sui with Walrus, May 23 – Jun 6).
 
-AgentVault is the first AI agent that can be inherited. You train it on
-your voice and your values today; you list the wallets of people you
-love. The Move contract on Sui watches for your silence. If you stop
-ping-ing — by choice, by absence, or by fate — your heirs unlock the
-agent and can talk to it forever, in your own preserved voice.
+Heirloom is the first AI you can pass down. You train it on your voice
+and your values today; you list the wallets of people you love. The Move
+contract on Sui watches for your silence. If you stop ping-ing — by
+choice, by absence, or by fate — your heirs unlock the agent and can
+talk to it forever, in your own preserved voice.
 
-The agent's memories live encrypted on **Walrus**. The ownership and
-the dead-man's switch live on **Sui**, accessed through a **Tatum** RPC
+The agent's memories live encrypted on **Walrus**. Ownership and the
+dead-man's switch live on **Sui**, accessed through a **Tatum** RPC
 gateway. Architecture is inspired by Mysten Labs'
 [MemWal SDK](https://github.com/MystenLabs/MemWal).
+
+> **A note on names.** This repo is `Agent-vault` and the on-chain
+> Move package is `agent_vault::agent` — those are legacy identifiers
+> kept stable for the published package. The user-facing brand is
+> Heirloom.
 
 ---
 
@@ -227,7 +232,7 @@ CI runs steps 2 + 3 on every push (`.github/workflows/ci.yml`).
 - **Multi-provider chat.** Claude, Gemini, local Ollama — same memory
   vault, swappable brain.
 - **NemoClaw / OpenClaw plugins** so existing agent frameworks can
-  plug in AgentVault as their memory backend.
+  plug in Heirloom as their memory backend.
 
 ---
 

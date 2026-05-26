@@ -20,8 +20,8 @@ export function Header() {
         href="/"
         className="flex items-center gap-2 text-base font-semibold tracking-tight"
       >
-        <span className="text-xl">🧠</span>
-        <span>AgentVault</span>
+        <span className="text-xl">🕯️</span>
+        <span>Heirloom</span>
       </Link>
 
       <nav className="hidden items-center gap-1 text-sm md:flex">

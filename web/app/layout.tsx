@@ -6,13 +6,13 @@ import { Providers } from "./providers";
 import { AuroraBackground } from "@/components/AuroraBackground";
 
 export const metadata: Metadata = {
-  title: "AgentVault — Your AI agent. Owned forever.",
+  title: "Heirloom — A mind that outlives you.",
   description:
-    "Mint an AI agent NFT on Sui. Memories live on Walrus. Portable across ChatGPT, Claude, anywhere.",
+    "An AI heirloom for the digital age. Train an agent on your voice today; list the wallets you love. When you go silent, your heirs unlock the agent and can talk to you forever.",
   openGraph: {
-    title: "AgentVault",
+    title: "Heirloom — A mind that outlives you.",
     description:
-      "Portable AI agents with verifiable memory on Walrus + Sui. Built for the Tatum × Walrus Hackathon.",
+      "Inheritable AI agents with verifiable memory on Walrus + Sui. Built for the Tatum × Walrus Hackathon.",
     type: "website",
   },
 };
