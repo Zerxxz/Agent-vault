@@ -4,6 +4,7 @@ import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Avatar } from "./Avatar";
 
 const PACKAGE_ID =
   process.env.NEXT_PUBLIC_AGENT_PACKAGE_ID ??
@@ -147,7 +148,7 @@ export function AgentList() {
             className="block h-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:border-white/20 hover:bg-white/[0.05]"
           >
             <div className="mb-3 flex items-start justify-between gap-3">
-              <span className="text-3xl">{agent.avatar}</span>
+              <Avatar src={agent.avatar} size={48} rounded="lg" />
               <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-white/50">
                 v{agent.version}
               </span>

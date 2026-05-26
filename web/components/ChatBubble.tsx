@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { motion } from "framer-motion";
+import { Avatar } from "./Avatar";
 
 export type ChatRole = "user" | "assistant";
 
@@ -28,11 +29,7 @@ export function ChatBubble({
         isUser && "justify-end",
       )}
     >
-      {!isUser && (
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-violet-500/15 text-base">
-          {avatar ?? "🤖"}
-        </div>
-      )}
+      {!isUser && <Avatar src={avatar} size={32} />}
 
       <div
         className={clsx(

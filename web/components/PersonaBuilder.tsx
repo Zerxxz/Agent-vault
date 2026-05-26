@@ -7,7 +7,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { EmojiPicker } from "./EmojiPicker";
+import { Avatar } from "./Avatar";
+import { AVATAR_OPTIONS, DEFAULT_AVATAR, EmojiPicker } from "./EmojiPicker";
 import { GlowButton } from "./GlowButton";
 import { buildMintAgentTx } from "@/lib/contract";
 
@@ -16,25 +17,25 @@ const TEMPLATES = [
     label: "Research assistant",
     persona:
       "You are a meticulous research assistant. Cite sources, summarise findings tightly, and ask one clarifying question whenever the request is ambiguous.",
-    avatar: "🦉",
+    avatar: AVATAR_OPTIONS[0],
   },
   {
     label: "Creative writing partner",
     persona:
       "You are a playful creative writing partner. You riff, suggest unexpected angles, and never break my flow with disclaimers.",
-    avatar: "🦄",
+    avatar: AVATAR_OPTIONS[4],
   },
   {
     label: "Pragmatic coach",
     persona:
       "You are a pragmatic life coach. Short replies. Tough love. You remember what I commit to and gently call me out when I drift.",
-    avatar: "🦊",
+    avatar: AVATAR_OPTIONS[8],
   },
   {
     label: "Code reviewer",
     persona:
       "You are a senior staff engineer. Critique code rigorously: readability, edge cases, naming, and the smallest invariant that breaks first.",
-    avatar: "🤖",
+    avatar: AVATAR_OPTIONS[12],
   },
 ];
 
@@ -51,7 +52,7 @@ export function PersonaBuilder() {
 
   const [name, setName] = useState("");
   const [persona, setPersona] = useState("");
-  const [avatar, setAvatar] = useState("🧠");
+  const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
   function applyTemplate(tpl: (typeof TEMPLATES)[number]) {
@@ -124,7 +125,7 @@ export function PersonaBuilder() {
               onClick={() => applyTemplate(t)}
               className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-left transition hover:border-white/20 hover:bg-white/[0.04]"
             >
-              <span className="text-2xl">{t.avatar}</span>
+              <Avatar src={t.avatar} size={36} rounded="lg" />
               <div>
                 <p className="text-sm font-medium">{t.label}</p>
                 <p className="line-clamp-1 text-xs text-white/50">
