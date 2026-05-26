@@ -31,8 +31,8 @@ export function AgentVisual() {
           <Image
             src="/mascot.png"
             alt="Heirloom mascot — a walrus secret agent in a fedora and sunglasses"
-            width={300}
-            height={244}
+            width={260}
+            height={387}
             priority
             className="select-none"
           />
