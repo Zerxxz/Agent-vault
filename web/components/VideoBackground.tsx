@@ -3,36 +3,30 @@
 // top with `mix-blend-mode: screen`, so their violet/cyan tint composites
 // over the video instead of replacing it.
 //
-// Design goals:
-//   - Lightweight (single ~650 KB asset, served from /public)
-//   - Accessible: respects `prefers-reduced-motion` (CSS hides the
-//     video so users on that setting see only the aurora)
-//   - Resilient: explicit `playsInline` + `muted` so autoplay works
-//     across iOS Safari, Chrome mobile, and desktop browsers
-//   - Quiet: a heavy radial vignette on top guarantees text contrast
-//     without depending on the underlying video frame
+// Tuning history:
+//   - v1 stacked an inner vignette + 60% opacity + 1.5px blur on top
+//     of AuroraBackground's own vignette, which made the video
+//     basically invisible. v2 strips both and trusts AuroraBackground
+//     to do the corner darkening alone.
 
 export function VideoBackground() {
   return (
-    <div className="bg-video fixed inset-0 -z-10 overflow-hidden">
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        aria-hidden
-        className="h-full w-full object-cover opacity-60"
-        // Slight blur softens compression noise and pushes the video
-        // visually further back behind the aurora.
-        style={{ filter: "blur(1.5px) saturate(1.05) brightness(0.85)" }}
-      >
-        <source src="/bg.mp4" type="video/mp4" />
-      </video>
-
-      {/* Vignette so the corners fade into the dark navy base, the same
-          radial used by AuroraBackground for visual continuity. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_0%,_rgba(5,8,22,0.55)_65%,_rgba(5,8,22,0.95)_100%)]" />
-    </div>
+    <video
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="auto"
+      aria-hidden
+      // z-0 keeps the video above the body's solid bg-color but below
+      // AuroraBackground (also z-0, rendered later in DOM = on top).
+      className="bg-video fixed inset-0 z-0 h-full w-full object-cover"
+      // Slight desaturate so the brand's violet/cyan tints (added by
+      // the aurora layer) read clearly on top of whatever the video
+      // shows.
+      style={{ filter: "saturate(0.85) brightness(0.95)" }}
+    >
+      <source src="/bg.mp4" type="video/mp4" />
+    </video>
   );
 }
