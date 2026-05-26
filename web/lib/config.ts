@@ -15,11 +15,16 @@ export const config = {
     | "mainnet"
     | "testnet"
     | "devnet",
+  // Tatum RPC URLs + API key for hackathon submission
   tatumRpcUrl: required(
     "NEXT_PUBLIC_TATUM_RPC_URL",
     process.env.NEXT_PUBLIC_TATUM_RPC_URL,
   ),
-  tatumApiKey: process.env.TATUM_API_KEY ?? "",
+  tatumTestnetRpc: required(
+    "NEXT_PUBLIC_TATUM_TESTNET_RPC",
+    process.env.NEXT_PUBLIC_TATUM_TESTNET_RPC,
+  ),
+  tatumApiKey: process.env.NEXT_PUBLIC_TATUM_API_KEY ?? "",
   walrus: {
     publisher: required(
       "NEXT_PUBLIC_WALRUS_PUBLISHER",

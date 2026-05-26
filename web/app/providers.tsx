@@ -9,12 +9,22 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@mysten/dapp-kit/dist/index.css";
 import { ReactNode, useState } from "react";
 
+// Tatum RPC config — API key passed via x-api-key header.
+const TATUM_API_KEY = process.env.NEXT_PUBLIC_TATUM_API_KEY ?? "";
+const TATUM_MAINNET_RPC = process.env.NEXT_PUBLIC_TATUM_RPC_URL ?? "https://sui-mainnet.gateway.tatum.io/";
+const TATUM_TESTNET_RPC = "https://sui-testnet-grpc.gateway.tatum.io/";
+
+const makeHeaders = () =>
+  TATUM_API_KEY ? ({ "x-api-key": TATUM_API_KEY } as Record<string, string>) : {};
+
 const { networkConfig } = createNetworkConfig({
   mainnet: {
-    url: process.env.NEXT_PUBLIC_SUI_RPC_URL ?? "https://fullnode.mainnet.sui.io:443",
+    url: TATUM_MAINNET_RPC,
+    headers: makeHeaders(),
   },
   testnet: {
-    url: "https://fullnode.testnet.sui.io:443",
+    url: TATUM_TESTNET_RPC,
+    headers: makeHeaders(),
   },
 });
 
