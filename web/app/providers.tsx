@@ -9,14 +9,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@mysten/dapp-kit/dist/index.css";
 import { ReactNode, useState } from "react";
 
-const TATUM_API_KEY = process.env.TATUM_API_KEY ?? "";
-
 const { networkConfig } = createNetworkConfig({
   mainnet: {
-    url: process.env.NEXT_PUBLIC_TATUM_RPC_URL ?? "https://sui-mainnet.gateway.tatum.io/",
-    headers: TATUM_API_KEY ? { "x-api-key": TATUM_API_KEY } : {},
+    url: process.env.NEXT_PUBLIC_SUI_RPC_URL ?? "https://fullnode.mainnet.sui.io:443",
   },
-  testnet: { url: "https://sui-testnet.gateway.tatum.io/" },
+  testnet: {
+    url: "https://fullnode.testnet.sui.io:443",
+  },
 });
 
 export function Providers({ children }: { children: ReactNode }) {
