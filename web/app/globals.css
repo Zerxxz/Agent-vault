@@ -243,4 +243,10 @@ input[type="datetime-local"] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+
+  /* Hide the looping background video for users who opt out of motion;
+     the static aurora gradient still carries the page's colour. */
+  .bg-video video {
+    display: none;
+  }
 }

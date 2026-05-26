@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "./providers";
 import { AuroraBackground } from "@/components/AuroraBackground";
+import { VideoBackground } from "@/components/VideoBackground";
 
 export const metadata: Metadata = {
   title: "Heirloom — A mind that outlives you.",
@@ -28,6 +29,12 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body className="min-h-screen overflow-x-hidden font-sans antialiased">
+        {/* Background stack, bottom-up:
+              1. VideoBackground — looping MP4 with vignette
+              2. AuroraBackground — drifting radial blobs (mix-blend-mode: screen)
+              3. .grain — subtle SVG noise overlay
+            All three are pointer-events: none and below z-10 content. */}
+        <VideoBackground />
         <AuroraBackground />
         <div className="grain" />
         <Providers>
