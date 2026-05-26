@@ -96,7 +96,7 @@ export function SettingsPanel() {
       <div className="border-t border-white/5 pt-6">
         <h3 className="mb-2 text-sm font-medium">Local memory cache</h3>
         <p className="mb-4 text-xs text-white/50">
-          AgentVault keeps a decrypted copy of your memories in IndexedDB so
+          Heirloom keeps a decrypted copy of your memories in IndexedDB so
           recall is instant. Clearing it forces a re-fetch from Walrus the
           next time an agent loads.
         </p>

@@ -26,7 +26,7 @@ export function ApiKeyGate({ children }: { children: React.ReactNode }) {
         <p className="text-2xl">🔑</p>
         <h3 className="mt-3 text-lg font-semibold">Add your OpenAI key</h3>
         <p className="mx-auto mt-2 max-w-md text-sm text-white/60">
-          AgentVault uses your own OpenAI key (BYOK) so the model talks to
+          Heirloom uses your own OpenAI key (BYOK) so the model talks to
           your data, not ours. We never see it.
         </p>
         <Link

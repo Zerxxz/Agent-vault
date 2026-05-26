@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 
-// Hero illustration: the AgentVault mascot (walrus secret agent)
+// Hero illustration: the Heirloom mascot (a walrus secret agent)
 // floating with ambient particles, glow halo, and orbiting dots.
 
 export function AgentVisual() {
@@ -30,7 +30,7 @@ export function AgentVisual() {
         >
           <Image
             src="/mascot.png"
-            alt="AgentVault mascot — a walrus secret agent in a fedora and sunglasses"
+            alt="Heirloom mascot — a walrus secret agent in a fedora and sunglasses"
             width={300}
             height={244}
             priority

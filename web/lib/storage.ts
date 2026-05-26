@@ -7,7 +7,7 @@
 import { createStore, get, set, keys, del, clear } from "idb-keyval";
 import type { Visibility } from "./contract";
 
-const memStore = createStore("agentvault", "memories");
+const memStore = createStore("heirloom", "memories");
 
 export type LocalMemory = {
   /** Walrus blob id this memory lives at on-chain. */
@@ -63,7 +63,7 @@ export async function clearAllMemories(): Promise<void> {
 
 // ---- BYOK OpenAI key ------------------------------------------------
 
-const KEY_STORAGE = "agentvault.openai_key";
+const KEY_STORAGE = "heirloom.openai_key";
 
 export function getStoredOpenAIKey(): string | null {
   if (typeof window === "undefined") return null;
