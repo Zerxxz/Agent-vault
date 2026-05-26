@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ApiKeyGate } from "@/components/ApiKeyGate";
+import { Avatar } from "@/components/Avatar";
 import { ChatInterface } from "@/components/ChatInterface";
 import { Header } from "@/components/Header";
 import {
@@ -128,7 +129,7 @@ export default function AgentChatPage({
         {/* Header — name, status, links */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <span className="text-3xl">{agent.avatar}</span>
+            <Avatar src={agent.avatar} size={44} rounded="lg" />
             <div>
               <h1 className="text-xl font-semibold">{agent.name}</h1>
               <p className="font-mono text-[11px] text-white/40">
