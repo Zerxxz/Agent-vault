@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Avatar } from "./Avatar";
 import {
   computeDormancy,
   fetchHeirAgentIds,
@@ -171,7 +172,7 @@ export function AgentList() {
               )}
             >
               <div className="mb-3 flex items-start justify-between gap-3">
-                <span className="text-3xl">{agent.avatar}</span>
+                <Avatar src={agent.avatar} size={48} rounded="lg" />
                 <div className="flex flex-col items-end gap-1">
                   {isHeir && (
                     <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-300">
