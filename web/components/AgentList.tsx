@@ -1,11 +1,16 @@
 "use client";
 
 import { useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
+import clsx from "clsx";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Avatar } from "./Avatar";
-import { fetchHeirAgentIds, computeDormancy, formatDuration, type AgentChainData } from "@/lib/inheritance";
+import {
+  computeDormancy,
+  fetchHeirAgentIds,
+  formatDuration,
+  type AgentChainData,
+} from "@/lib/inheritance";
 
 const PACKAGE_ID =
   process.env.NEXT_PUBLIC_AGENT_PACKAGE_ID ??
@@ -17,6 +22,11 @@ export type AgentSummary = AgentChainData & {
   role: "owner" | "heir";
 };
 
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  show: { opacity: 1, y: 0 },
+};
+
 export function AgentList() {
   const account = useCurrentAccount();
   const suiClient = useSuiClient();
@@ -25,71 +35,70 @@ export function AgentList() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-  if (!account) {
-    setItems(null);
-    return;
-  }
+    if (!account) {
+      setItems(null);
+      return;
+    }
 
-  let cancelled = false;
-  void (async () => {
-    try {
-      // 1. Owned agents (existing)
-      const ownedRes = await suiClient.getOwnedObjects({
-        owner: account.address,
-        filter: { StructType: AGENT_TYPE },
-        options: { showContent: true },
-        limit: 50,
-      });
+    let cancelled = false;
+    void (async () => {
+      try {
+        // 1. Owned agents (existing)
+        const ownedRes = await suiClient.getOwnedObjects({
+          owner: account.address,
+          filter: { StructType: AGENT_TYPE },
+          options: { showContent: true },
+          limit: 50,
+        });
 
-      // 2. NEW: Heir-listed agents (from event log)
-      const heirIds = await fetchHeirAgentIds(
-        suiClient,
-        account.address,
-        PACKAGE_ID,
-      );
-      const heirObjs = await Promise.all(
-        heirIds.map((id) =>
-          suiClient
-            .getObject({ id, options: { showContent: true } })
-            .catch(() => null),
-        ),
-      );
+        // 2. Heir-listed agents (from event log)
+        const heirIds = await fetchHeirAgentIds(
+          suiClient,
+          account.address,
+          PACKAGE_ID,
+        );
+        const heirObjs = await Promise.all(
+          heirIds.map((id) =>
+            suiClient
+              .getObject({ id, options: { showContent: true } })
+              .catch(() => null),
+          ),
+        );
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const list: AgentSummary[] = [];
+        const list: AgentSummary[] = [];
 
-      // Parse owned
-      for (const item of ownedRes.data) {
-        const parsed = parseAgent(item.data);
-        if (parsed) list.push({ ...parsed, role: "owner" });
-      }
+        // Parse owned
+        for (const item of ownedRes.data) {
+          const parsed = parseAgent(item.data);
+          if (parsed) list.push({ ...parsed, role: "owner" });
+        }
 
-      // Parse heir-listed (skip if it's already in owned, e.g. owner
-      // listed themselves accidentally)
-      const ownedIds = new Set(list.map((a) => a.id));
-      for (const item of heirObjs) {
-        if (!item) continue;
-        const parsed = parseAgent(item.data);
-        if (parsed && !ownedIds.has(parsed.id)) {
-          list.push({ ...parsed, role: "heir" });
+        // Parse heir-listed (skip if already in owned, e.g. owner
+        // listed themselves accidentally)
+        const ownedIds = new Set(list.map((a) => a.id));
+        for (const item of heirObjs) {
+          if (!item) continue;
+          const parsed = parseAgent(item.data);
+          if (parsed && !ownedIds.has(parsed.id)) {
+            list.push({ ...parsed, role: "heir" });
+          }
+        }
+
+        list.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+        setItems(list);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err));
         }
       }
+    })();
 
-      list.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
-      setItems(list);
-    } catch (err) {
-      if (!cancelled) {
-        setError(err instanceof Error ? err.message : String(err));
-      }
-    }
-  })();
-
-  return () => {
-    cancelled = true;
-  };
-}, [account, suiClient]);
-
+    return () => {
+      cancelled = true;
+    };
+  }, [account, suiClient]);
 
   if (!account) {
     return (
@@ -103,7 +112,7 @@ export function AgentList() {
   if (error) {
     return (
       <p className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
-        Couldn't load agents: {error}
+        Couldn&apos;t load agents: {error}
       </p>
     );
   }
@@ -148,60 +157,67 @@ export function AgentList() {
       className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
     >
       {items.map((agent) => {
-  const dormancy = computeDormancy(agent);
-  const isHeir = agent.role === "heir";
-  return (
-    <motion.li key={agent.id} variants={...}>
-      <Link
-        href={`/agent/${agent.id}`}
-        className={clsx(
-          "block h-full rounded-2xl border bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:bg-white/[0.05]",
-          isHeir
-            ? "border-amber-400/30 hover:border-amber-400/50"
-            : "border-white/10 hover:border-white/20",
-        )}
-      >
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <span className="text-3xl">{agent.avatar}</span>
-          <div className="flex flex-col items-end gap-1">
-            {isHeir && (
-              <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-300">
-                Inherited
-              </span>
-            )}
-            <StatusBadge isDormant={dormancy.isDormant} />
-          </div>
-        </div>
-        <p className="font-medium">{agent.name}</p>
-        <p className="mt-1 line-clamp-2 text-xs text-white/50">
-          {agent.persona}
-        </p>
-        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3 text-[10px] uppercase tracking-wider">
-          <span className="text-white/40">
-            {agent.memoryCount} {agent.memoryCount === 1 ? "memory" : "memories"}
-          </span>
-          <span className={isHeir ? "text-amber-300" : "text-violet-300"}>
-            {isHeir
-              ? dormancy.isDormant
-                ? "Memorial →"
-                : "Locked (active)"
-              : dormancy.isDormant
-                ? "Dormant →"
-                : "Open chat →"}
-          </span>
-        </div>
-        <div className="mt-1 text-[10px] text-white/30">
-          {isHeir
-            ? `From ${shortAddr(agent.creator)} · ${dormancy.isDormant ? "unlocked" : `unlocks in ${formatDuration(dormancy.remainingMs)}`}`
-            : dormancy.isDormant
-              ? `Dormant since ${formatDuration(dormancy.silentMs)}`
-              : `Active · ${formatDuration(dormancy.remainingMs)} until dormant`}
-        </div>
-      </Link>
-    </motion.li>
+        const dormancy = computeDormancy(agent);
+        const isHeir = agent.role === "heir";
+        return (
+          <motion.li key={agent.id} variants={itemVariants}>
+            <Link
+              href={`/agent/${agent.id}`}
+              className={clsx(
+                "block h-full rounded-2xl border bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:bg-white/[0.05]",
+                isHeir
+                  ? "border-amber-400/30 hover:border-amber-400/50"
+                  : "border-white/10 hover:border-white/20",
+              )}
+            >
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <span className="text-3xl">{agent.avatar}</span>
+                <div className="flex flex-col items-end gap-1">
+                  {isHeir && (
+                    <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-300">
+                      Inherited
+                    </span>
+                  )}
+                  <StatusBadge isDormant={dormancy.isDormant} />
+                </div>
+              </div>
+              <p className="font-medium">{agent.name}</p>
+              <p className="mt-1 line-clamp-2 text-xs text-white/50">
+                {agent.persona}
+              </p>
+              <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3 text-[10px] uppercase tracking-wider">
+                <span className="text-white/40">
+                  {agent.memoryCount}{" "}
+                  {agent.memoryCount === 1 ? "memory" : "memories"}
+                </span>
+                <span className={isHeir ? "text-amber-300" : "text-violet-300"}>
+                  {isHeir
+                    ? dormancy.isDormant
+                      ? "Memorial →"
+                      : "Locked (active)"
+                    : dormancy.isDormant
+                      ? "Dormant →"
+                      : "Open chat →"}
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-white/30">
+                {isHeir
+                  ? `From ${shortAddr(agent.creator)} · ${
+                      dormancy.isDormant
+                        ? "unlocked"
+                        : `unlocks in ${formatDuration(dormancy.remainingMs)}`
+                    }`
+                  : dormancy.isDormant
+                    ? `Dormant since ${formatDuration(dormancy.silentMs)}`
+                    : `Active · ${formatDuration(dormancy.remainingMs)} until dormant`}
+              </div>
+            </Link>
+          </motion.li>
+        );
+      })}
+    </motion.ul>
   );
-})}
-
+}
 
 function StatusBadge({ isDormant }: { isDormant: boolean }) {
   if (isDormant) {
@@ -257,15 +273,20 @@ function extractBlobIds(memoryRefs: unknown[]): string[] {
   return out;
 }
 
-function parseAgent(data: unknown): (AgentChainData & { memoryCount: number }) | null {
+function parseAgent(
+  data: unknown,
+): (AgentChainData & { memoryCount: number }) | null {
   if (!data || typeof data !== "object") return null;
-  const d = data as { content?: { dataType?: string; fields?: Record<string, unknown> }; objectId?: string };
+  const d = data as {
+    content?: { dataType?: string; fields?: Record<string, unknown> };
+    objectId?: string;
+  };
   if (d.content?.dataType !== "moveObject") return null;
   const fields = d.content.fields as Record<string, unknown>;
-  
+
   const memoryRefs = (fields.memory_refs as unknown[]) ?? [];
   const heirsRaw = (fields.heirs as unknown[]) ?? [];
-  
+
   return {
     id: d.objectId ?? "",
     creator: (fields.creator as string) ?? "",
@@ -281,7 +302,7 @@ function parseAgent(data: unknown): (AgentChainData & { memoryCount: number }) |
   };
 }
 
-      function shortAddr(addr: string): string {
+function shortAddr(addr: string): string {
   if (addr.length <= 12) return addr;
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }

@@ -44,7 +44,7 @@ import {
   rehydrateFromChain,
   searchRelevant,
 } from "@/lib/memory";
-import { getStoredOpenAIKey, listMemories } from "@/lib/storage";
+import { getStoredOpenAIKey, getStoredProvider, getStoredModel, listMemories } from "@/lib/storage";
 
 type Message = {
   id: string;

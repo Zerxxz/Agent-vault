@@ -3,6 +3,7 @@
 // keeps no boolean "is_dormant" flag; everything is derived so a single
 // chain read tells the full story.
 
+import type { SuiClient } from "@mysten/sui/client";
 import type { Visibility } from "./contract";
 import { VISIBILITY_HEIRS, VISIBILITY_PRIVATE } from "./contract";
 
@@ -122,7 +123,6 @@ export const DORMANCY_PRESETS: { label: string; ms: number }[] = [
 ];
 
 export const DEFAULT_DORMANCY_MS = 180 * 86_400_000;
-}
 
 // =====================================================================
 // Heir discovery via on-chain events
@@ -132,8 +132,6 @@ export const DEFAULT_DORMANCY_MS = 180 * 86_400_000;
 // list heirs, so an heir wallet can't find inherited agents via
 // `getOwnedObjects`. Instead we replay HeirAdded / HeirRemoved
 // events from the package and net them to find the live heir set.
-
-import type { SuiClient } from "@mysten/sui/client";
 
 const EVENTS_PAGE_LIMIT = 200;
 
