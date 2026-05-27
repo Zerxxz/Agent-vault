@@ -37,10 +37,20 @@ const WALRUS_TESTNET_AGGREGATORS = [
 ];
 const WALRUS_MAINNET_PUBLISHERS: string[] = [
   // Intentionally empty — there is no working free public mainnet
-  // publisher right now. Set NEXT_PUBLIC_WALRUS_PUBLISHER explicitly.
+  // publisher right now. Probed 2025-05:
+  //   publisher.walrus-mainnet.walrus.space     → DNS_FAIL (Mysten)
+  //   walrus-mainnet-publisher-1.staketab.org   → HTTP 502 (down)
+  //   publisher.walrus.banansen.dev             → HTTP 502 (down)
+  //   walrus-mainnet-publisher.nami.cloud       → S3-compatible API,
+  //                                                NOT standard Walrus
+  //                                                (needs signup+keys)
+  // Set NEXT_PUBLIC_WALRUS_PUBLISHER explicitly — see .env.example
+  // for self-hosted vs paid options.
 ];
 const WALRUS_MAINNET_AGGREGATORS = [
+  // All HTTP-200 + standard Walrus API (probed 2025-05).
   "https://aggregator.walrus-mainnet.walrus.space",
+  "https://walrus-mainnet-aggregator.nami.cloud",
   "https://aggregator.walrus.banansen.dev",
 ];
 
