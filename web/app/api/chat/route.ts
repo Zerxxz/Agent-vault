@@ -1,7 +1,6 @@
-// Streaming chat endpoint. The user's BYOK OpenAI key is sent in a
-// header from the client; we never persist it server-side. We use the
-// Vercel AI SDK so the wire format is the standard data-stream protocol
-// the `useChat` hook on the client speaks natively.
+// Streaming chat proxy. Reads provider + model from request headers
+// so the same edge route serves OpenAI and OpenRouter (and any other
+// OpenAI-compatible endpoint we add later — Groq, Together, etc.).
 
 import { createOpenAI } from "@ai-sdk/openai";
 import { streamText, type CoreMessage } from "ai";
@@ -9,23 +8,30 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export const runtime = "edge";
 
+const PROVIDER_BASE_URL = {
+  openai: "https://api.openai.com/v1",
+  openrouter: "https://openrouter.ai/api/v1",
+} as const;
+
 type Body = {
   messages: CoreMessage[];
-  /** Per-agent system prompt (persona + memory recall block). */
   system: string;
 };
 
 export async function POST(req: NextRequest) {
-  const apiKey = req.headers.get("x-openai-key");
+  const apiKey = req.headers.get("x-llm-key");
   if (!apiKey) {
     return NextResponse.json(
-      {
-        error:
-          "Missing OpenAI API key. Set one in /settings to start chatting.",
-      },
+      { error: "Missing API key. Set one in /settings to start chatting." },
       { status: 400 },
     );
   }
+
+  const provider =
+    (req.headers.get("x-llm-provider") as keyof typeof PROVIDER_BASE_URL) ||
+    "openai";
+  const model = req.headers.get("x-llm-model") || "gpt-4o-mini";
+  const baseURL = PROVIDER_BASE_URL[provider];
 
   let body: Body;
   try {
@@ -34,17 +40,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bad JSON body" }, { status: 400 });
   }
 
-  const openai = createOpenAI({ apiKey });
+  const client = createOpenAI({
+    apiKey,
+    baseURL,
+    headers:
+      provider === "openrouter"
+        ? {
+            "HTTP-Referer": req.headers.get("origin") ?? "https://heirloom.app",
+            "X-Title": "Heirloom",
+          }
+        : undefined,
+  });
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: client(model),
     system: body.system,
     messages: body.messages,
     temperature: 0.7,
   });
 
-  // Plain text stream — easier to consume from a custom client hook than
-  // the data-stream protocol. We sacrifice tool-call support, which we
-  // don't need for this MVP anyway.
   return result.toTextStreamResponse();
 }
