@@ -9,22 +9,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@mysten/dapp-kit/dist/index.css";
 import { ReactNode, useState } from "react";
 
-// Tatum REST JSON-RPC endpoints (NOT gRPC — dApp Kit uses JSON-RPC over HTTP)
-const TATUM_API_KEY = process.env.NEXT_PUBLIC_TATUM_API_KEY ?? "";
-const TATUM_MAINNET = process.env.NEXT_PUBLIC_TATUM_RPC_URL ?? "https://sui-mainnet.gateway.tatum.io";
-const TATUM_TESTNET = process.env.NEXT_PUBLIC_TATUM_TESTNET_RPC ?? "https://sui-testnet.gateway.tatum.io";
-
-const makeHeaders = () =>
-  TATUM_API_KEY ? ({ "x-api-key": TATUM_API_KEY } as Record<string, string>) : {};
-
+// Browser-side RPC endpoints. We deliberately use Sui Foundation's
+// public fullnode here instead of Tatum — Tatum's gateway requires
+// an x-api-key header that we cannot safely ship to the browser, and
+// its CORS policy rejects unauthenticated browser calls from arbitrary
+// origins (including vercel.app subdomains). The Tatum gateway is
+// still used server-side from `lib/sui.ts` where we can safely attach
+// the API key header.
 const { networkConfig } = createNetworkConfig({
   mainnet: {
-    url: TATUM_MAINNET,
-    headers: makeHeaders(),
+    url: "https://fullnode.mainnet.sui.io:443",
   },
   testnet: {
-    url: TATUM_TESTNET,
-    headers: makeHeaders(),
+    url: "https://fullnode.testnet.sui.io:443",
   },
 });
 
