@@ -148,51 +148,60 @@ export function AgentList() {
       className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
     >
       {items.map((agent) => {
-        const dormancy = computeDormancy(agent);
-        return (
-          <motion.li
-            key={agent.id}
-            variants={{
-              hidden: { opacity: 0, y: 12 },
-              show: { opacity: 1, y: 0 },
-            }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          >
-            <Link
-              href={`/agent/${agent.id}`}
-              className="block h-full rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:border-white/20 hover:bg-white/[0.05]"
-            >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <Avatar src={agent.avatar} size={48} rounded="lg" />
-                <StatusBadge isDormant={dormancy.isDormant} />
-              </div>
-              <p className="font-medium">{agent.name}</p>
-              <p className="mt-1 line-clamp-2 text-xs text-white/50">
-                {agent.persona}
-              </p>
-              <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3 text-[10px] uppercase tracking-wider">
-                <span className="text-white/40">
-                  {agent.memoryCount}{" "}
-                  {agent.memoryCount === 1 ? "memory" : "memories"} ·{" "}
-                  {agent.heirs.length}{" "}
-                  {agent.heirs.length === 1 ? "heir" : "heirs"}
-                </span>
-                <span className="text-violet-300">
-                  {dormancy.isDormant ? "Memorial →" : "Open chat →"}
-                </span>
-              </div>
-              <div className="mt-1 text-[10px] text-white/30">
-                {dormancy.isDormant
-                  ? `Dormant since ${formatDuration(dormancy.silentMs)}`
-                  : `Active · ${formatDuration(dormancy.remainingMs)} until dormant`}
-              </div>
-            </Link>
-          </motion.li>
-        );
-      })}
-    </motion.ul>
+  const dormancy = computeDormancy(agent);
+  const isHeir = agent.role === "heir";
+  return (
+    <motion.li key={agent.id} variants={...}>
+      <Link
+        href={`/agent/${agent.id}`}
+        className={clsx(
+          "block h-full rounded-2xl border bg-white/[0.03] p-5 backdrop-blur-xl transition gradient-border hover:bg-white/[0.05]",
+          isHeir
+            ? "border-amber-400/30 hover:border-amber-400/50"
+            : "border-white/10 hover:border-white/20",
+        )}
+      >
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <span className="text-3xl">{agent.avatar}</span>
+          <div className="flex flex-col items-end gap-1">
+            {isHeir && (
+              <span className="rounded-full border border-amber-400/30 bg-amber-500/15 px-2 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-300">
+                Inherited
+              </span>
+            )}
+            <StatusBadge isDormant={dormancy.isDormant} />
+          </div>
+        </div>
+        <p className="font-medium">{agent.name}</p>
+        <p className="mt-1 line-clamp-2 text-xs text-white/50">
+          {agent.persona}
+        </p>
+        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-3 text-[10px] uppercase tracking-wider">
+          <span className="text-white/40">
+            {agent.memoryCount} {agent.memoryCount === 1 ? "memory" : "memories"}
+          </span>
+          <span className={isHeir ? "text-amber-300" : "text-violet-300"}>
+            {isHeir
+              ? dormancy.isDormant
+                ? "Memorial →"
+                : "Locked (active)"
+              : dormancy.isDormant
+                ? "Dormant →"
+                : "Open chat →"}
+          </span>
+        </div>
+        <div className="mt-1 text-[10px] text-white/30">
+          {isHeir
+            ? `From ${shortAddr(agent.creator)} · ${dormancy.isDormant ? "unlocked" : `unlocks in ${formatDuration(dormancy.remainingMs)}`}`
+            : dormancy.isDormant
+              ? `Dormant since ${formatDuration(dormancy.silentMs)}`
+              : `Active · ${formatDuration(dormancy.remainingMs)} until dormant`}
+        </div>
+      </Link>
+    </motion.li>
   );
-}
+})}
+
 
 function StatusBadge({ isDormant }: { isDormant: boolean }) {
   if (isDormant) {
@@ -270,4 +279,9 @@ function parseAgent(data: unknown): (AgentChainData & { memoryCount: number }) |
     version: Number(fields.version ?? 0),
     memoryCount: memoryRefs.length,
   };
+}
+
+      function shortAddr(addr: string): string {
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
