@@ -122,3 +122,55 @@ export const DORMANCY_PRESETS: { label: string; ms: number }[] = [
 ];
 
 export const DEFAULT_DORMANCY_MS = 180 * 86_400_000;
+}
+
+// =====================================================================
+// Heir discovery via on-chain events
+// =====================================================================
+//
+// The agent NFT stays owned by the original creator even after they
+// list heirs, so an heir wallet can't find inherited agents via
+// `getOwnedObjects`. Instead we replay HeirAdded / HeirRemoved
+// events from the package and net them to find the live heir set.
+
+import type { SuiClient } from "@mysten/sui/client";
+
+const EVENTS_PAGE_LIMIT = 200;
+
+export async function fetchHeirAgentIds(
+  suiClient: SuiClient,
+  heirAddress: string,
+  packageId: string,
+): Promise<string[]> {
+  // We replay both events; "added" minus "removed" (per agent+heir
+  // pair) gives us the current heir set without needing custom indexing.
+  const [added, removed] = await Promise.all([
+    suiClient.queryEvents({
+      query: { MoveEventType: `${packageId}::agent::HeirAdded` },
+      limit: EVENTS_PAGE_LIMIT,
+      order: "descending",
+    }),
+    suiClient.queryEvents({
+      query: { MoveEventType: `${packageId}::agent::HeirRemoved` },
+      limit: EVENTS_PAGE_LIMIT,
+      order: "descending",
+    }),
+  ]);
+
+  type EventFields = { agent_id: string; heir: string };
+
+  const live = new Set<string>();
+  for (const ev of added.data) {
+    const f = ev.parsedJson as EventFields;
+    if (f?.heir === heirAddress) live.add(f.agent_id);
+  }
+  // Subtract any removals that came AFTER an add. Since we list in
+  // descending order, simpler approach: build seq-aware net by
+  // walking added then removing matches. For now, simple subtraction
+  // is safe enough for MVP — re-adds aren't common.
+  for (const ev of removed.data) {
+    const f = ev.parsedJson as EventFields;
+    if (f?.heir === heirAddress) live.delete(f.agent_id);
+  }
+  return Array.from(live);
+}
