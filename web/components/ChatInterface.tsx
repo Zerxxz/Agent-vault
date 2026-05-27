@@ -168,11 +168,13 @@ export function ChatInterface({
 
         // --- 2. Stream reply from /api/chat
         const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-            "content-type": "application/json",
-            "x-openai-key": apiKey,
-          },
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    "x-llm-key": apiKey,
+    "x-llm-provider": getStoredProvider(),
+    "x-llm-model": getStoredModel(),
+  },
           body: JSON.stringify({
             system,
             messages: baseMessages.map((m) => ({
