@@ -5,11 +5,7 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Avatar } from "./Avatar";
-import {
-  computeDormancy,
-  formatDuration,
-  type AgentChainData,
-} from "@/lib/inheritance";
+import { fetchHeirAgentIds, computeDormancy, formatDuration, type AgentChainData } from "@/lib/inheritance";
 
 const PACKAGE_ID =
   process.env.NEXT_PUBLIC_AGENT_PACKAGE_ID ??
@@ -18,6 +14,7 @@ const AGENT_TYPE = `${PACKAGE_ID}::agent::AgentNFT`;
 
 export type AgentSummary = AgentChainData & {
   memoryCount: number;
+  role: "owner" | "heir";
 };
 
 export function AgentList() {
@@ -28,65 +25,71 @@ export function AgentList() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!account) {
-      setItems(null);
-      return;
-    }
+  if (!account) {
+    setItems(null);
+    return;
+  }
 
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await suiClient.getOwnedObjects({
-          owner: account.address,
-          filter: { StructType: AGENT_TYPE },
-          options: { showContent: true },
-          limit: 50,
-        });
+  let cancelled = false;
+  void (async () => {
+    try {
+      // 1. Owned agents (existing)
+      const ownedRes = await suiClient.getOwnedObjects({
+        owner: account.address,
+        filter: { StructType: AGENT_TYPE },
+        options: { showContent: true },
+        limit: 50,
+      });
 
-        if (cancelled) return;
+      // 2. NEW: Heir-listed agents (from event log)
+      const heirIds = await fetchHeirAgentIds(
+        suiClient,
+        account.address,
+        PACKAGE_ID,
+      );
+      const heirObjs = await Promise.all(
+        heirIds.map((id) =>
+          suiClient
+            .getObject({ id, options: { showContent: true } })
+            .catch(() => null),
+        ),
+      );
 
-        const list: AgentSummary[] = [];
-        for (const item of res.data) {
-          const content = item.data?.content;
-          if (!content || content.dataType !== "moveObject") continue;
-          const fields = content.fields as Record<string, unknown>;
+      if (cancelled) return;
 
-          const memoryRefs = (fields.memory_refs as unknown[]) ?? [];
-          const memoryCount = memoryRefs.length;
+      const list: AgentSummary[] = [];
 
-          const heirsRaw = (fields.heirs as unknown[]) ?? [];
-          const heirs = heirsRaw
-            .map((h) => (typeof h === "string" ? h : null))
-            .filter((s): s is string => typeof s === "string");
+      // Parse owned
+      for (const item of ownedRes.data) {
+        const parsed = parseAgent(item.data);
+        if (parsed) list.push({ ...parsed, role: "owner" });
+      }
 
-          list.push({
-            id: item.data?.objectId ?? "",
-            creator: (fields.creator as string) ?? "",
-            name: (fields.name as string) ?? "Untitled",
-            persona: (fields.persona as string) ?? "",
-            avatar: (fields.avatar as string) ?? "🤖",
-            memoryBlobIds: extractBlobIds(memoryRefs),
-            heirs,
-            dormancyThresholdMs: Number(fields.dormancy_threshold_ms ?? 0),
-            updatedAtMs: Number(fields.updated_at_ms ?? 0),
-            version: Number(fields.version ?? 0),
-            memoryCount,
-          });
-        }
-
-        list.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
-        setItems(list);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
+      // Parse heir-listed (skip if it's already in owned, e.g. owner
+      // listed themselves accidentally)
+      const ownedIds = new Set(list.map((a) => a.id));
+      for (const item of heirObjs) {
+        if (!item) continue;
+        const parsed = parseAgent(item.data);
+        if (parsed && !ownedIds.has(parsed.id)) {
+          list.push({ ...parsed, role: "heir" });
         }
       }
-    })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [account, suiClient]);
+      list.sort((a, b) => b.updatedAtMs - a.updatedAtMs);
+      setItems(list);
+    } catch (err) {
+      if (!cancelled) {
+        setError(err instanceof Error ? err.message : String(err));
+      }
+    }
+  })();
+
+  return () => {
+    cancelled = true;
+  };
+}, [account, suiClient]);
+
 
   if (!account) {
     return (
@@ -243,4 +246,28 @@ function extractBlobIds(memoryRefs: unknown[]): string[] {
     }
   }
   return out;
+}
+
+function parseAgent(data: unknown): (AgentChainData & { memoryCount: number }) | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as { content?: { dataType?: string; fields?: Record<string, unknown> }; objectId?: string };
+  if (d.content?.dataType !== "moveObject") return null;
+  const fields = d.content.fields as Record<string, unknown>;
+  
+  const memoryRefs = (fields.memory_refs as unknown[]) ?? [];
+  const heirsRaw = (fields.heirs as unknown[]) ?? [];
+  
+  return {
+    id: d.objectId ?? "",
+    creator: (fields.creator as string) ?? "",
+    name: (fields.name as string) ?? "Untitled",
+    persona: (fields.persona as string) ?? "",
+    avatar: (fields.avatar as string) ?? "🤖",
+    memoryBlobIds: extractBlobIds(memoryRefs),
+    heirs: heirsRaw.filter((h): h is string => typeof h === "string"),
+    dormancyThresholdMs: Number(fields.dormancy_threshold_ms ?? 0),
+    updatedAtMs: Number(fields.updated_at_ms ?? 0),
+    version: Number(fields.version ?? 0),
+    memoryCount: memoryRefs.length,
+  };
 }
