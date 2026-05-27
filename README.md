@@ -174,10 +174,6 @@ Open <http://localhost:3000>:
 4. Add the same env vars as `.env.local` in **Project Settings**.
 5. Deploy.
 
-### 4. Submit
-
-`SUBMISSION.md` is Devpost-ready. `DEMO_SCRIPT.md` is the 90-second
-demo video plan, beat-by-beat.
 
 ---
 
@@ -238,7 +234,7 @@ CI runs steps 2 + 3 on every push (`.github/workflows/ci.yml`).
 
 ## 🙏 Credits
 
-Built solo in 14 days for the [Tatum × Walrus Hackathon](https://tatum.io/sui-hackathon).
+Built solo for the [Tatum × Walrus Hackathon](https://tatum.io/sui-hackathon).
 
 Architecture inspired by Mysten Labs'
 [MemWal SDK](https://github.com/MystenLabs/MemWal). Powered by
