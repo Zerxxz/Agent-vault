@@ -54,6 +54,22 @@ type Message = {
 
 type Toast = { id: string; text: string; tone: "info" | "error" | "success" };
 
+/**
+ * Visible state machine for the post-reply memory pipeline. We render
+ * this as a pill below the chat so the owner always knows where things
+ * are — extraction can take 3-5s, encryption + Walrus another 5-10s,
+ * and the wallet popup arrives last. Without this indicator users
+ * thought "nothing's happening" and walked away, missing the popup.
+ */
+type MemoryStatus =
+  | { kind: "idle" }
+  | { kind: "extracting" }
+  | { kind: "persisting"; done: number; total: number }
+  | { kind: "signing"; count: number }
+  | { kind: "done"; count: number; partial?: { failed: number } }
+  | { kind: "skipped" }
+  | { kind: "failed"; reason: string };
+
 const MAX_RECALL = 5;
 
 export function ChatInterface({
@@ -78,6 +94,7 @@ export function ChatInterface({
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [rehydrating, setRehydrating] = useState<{ done: number; total: number } | null>(null);
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [memStatus, setMemStatus] = useState<MemoryStatus>({ kind: "idle" });
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // ---- One-time rehydrate of the local memory cache ----------------
@@ -217,20 +234,54 @@ export function ChatInterface({
         if (!isOwner) return;
 
         void (async () => {
+          // Auto-clear "done" / "skipped" / "failed" after a few seconds
+          // so the pill doesn't linger forever.
+          const settle = (status: MemoryStatus, ms = 4500) => {
+            setMemStatus(status);
+            if (
+              status.kind === "done" ||
+              status.kind === "skipped" ||
+              status.kind === "failed"
+            ) {
+              setTimeout(() => {
+                setMemStatus((cur) => (cur === status ? { kind: "idle" } : cur));
+              }, ms);
+            }
+          };
+
           try {
+            // Step 1 — ask the LLM what's worth remembering.
+            setMemStatus({ kind: "extracting" });
             const extracted = await extractMemories({
               apiKey,
               userMessage: text,
               assistantMessage: assistantText,
             });
-            if (extracted.length === 0) return;
+            console.debug("[memory] extracted", extracted);
+
+            if (extracted.length === 0) {
+              // The strict prompt skips small talk on purpose. Tell the
+              // user explicitly so they don't think we're broken.
+              settle({ kind: "skipped" });
+              return;
+            }
 
             const memoryVisibility: Visibility = privacyMode
               ? VISIBILITY_PRIVATE
               : VISIBILITY_HEIRS;
 
+            // Step 2 — embed + encrypt + push to Walrus, one by one.
+            // Track per-memory failures so we can report them instead
+            // of silently dropping the batch.
             const persisted: { blobId: string; category: string }[] = [];
-            for (const mem of extracted) {
+            const failures: string[] = [];
+            for (let i = 0; i < extracted.length; i++) {
+              const mem = extracted[i];
+              setMemStatus({
+                kind: "persisting",
+                done: i,
+                total: extracted.length,
+              });
               try {
                 const { blobId } = await persistMemory({
                   agentObjectId: agent.id,
@@ -240,13 +291,39 @@ export function ChatInterface({
                   apiKey,
                 });
                 persisted.push({ blobId, category: mem.category });
-              } catch {
-                // Tolerate partial failures.
+                console.debug(
+                  "[memory] persisted",
+                  i + 1,
+                  "/",
+                  extracted.length,
+                  blobId,
+                );
+              } catch (e) {
+                const reason = e instanceof Error ? e.message : String(e);
+                failures.push(reason);
+                console.warn("[memory] persist failed:", reason);
               }
             }
-            if (persisted.length === 0) return;
 
-            // One tx for the batch — N moveCalls, one signature.
+            if (persisted.length === 0) {
+              // Every persist attempt blew up — surface the first
+              // reason so the user can act (rotate key, check Walrus,
+              // etc.). Without this the pipeline went silent.
+              const reason = failures[0] ?? "no memories were saved";
+              pushToast("error", `Couldn't save memories: ${reason}`);
+              settle({ kind: "failed", reason }, 9000);
+              return;
+            }
+
+            // Step 3 — single tx with N moveCalls, one signature. Make
+            // it loud that the wallet popup is the user's job now.
+            setMemStatus({ kind: "signing", count: persisted.length });
+            console.debug(
+              "[memory] signing tx with",
+              persisted.length,
+              "add_memory calls",
+            );
+
             const tx = new Transaction();
             for (const m of persisted) {
               tx.moveCall({
@@ -262,19 +339,28 @@ export function ChatInterface({
             }
 
             await signAndExecute({ transaction: tx });
+
+            // Step 4 — done.
+            const partial =
+              failures.length > 0 ? { failed: failures.length } : undefined;
+            settle({ kind: "done", count: persisted.length, partial });
+            const visLabel =
+              memoryVisibility === VISIBILITY_PRIVATE ? "private" : "heir-visible";
             pushToast(
               "success",
-              `Remembered ${persisted.length} ${
-                memoryVisibility === VISIBILITY_PRIVATE
-                  ? "private"
-                  : "heir-visible"
-              } ${persisted.length === 1 ? "thing" : "things"}.`,
+              `Remembered ${persisted.length} ${visLabel} ${
+                persisted.length === 1 ? "thing" : "things"
+              }${
+                failures.length > 0
+                  ? ` (${failures.length} failed)`
+                  : ""
+              }.`,
             );
           } catch (err) {
-            pushToast(
-              "error",
-              `Memory failed: ${err instanceof Error ? err.message : "unknown"}`,
-            );
+            const reason = err instanceof Error ? err.message : "unknown error";
+            console.error("[memory] pipeline failed:", err);
+            pushToast("error", `Memory failed: ${reason}`);
+            settle({ kind: "failed", reason }, 9000);
           }
         })();
       } catch (err) {
@@ -396,6 +482,15 @@ export function ChatInterface({
         )}
       </div>
 
+      {/* Memory pipeline indicator (owner only). The post-reply flow
+          can take 5-15s — extraction → encrypt+upload → wallet popup.
+          Keeping the user informed at each step is the difference
+          between "the app saved my memories" and "I never noticed the
+          wallet popup". */}
+      {isOwner && memStatus.kind !== "idle" && (
+        <MemoryPipelinePill status={memStatus} />
+      )}
+
       {/* Privacy toggle (owner only) */}
       {isOwner && (
         <div className="flex items-center justify-between border-t border-white/5 px-5 py-2 text-xs">
@@ -454,5 +549,89 @@ export function ChatInterface({
         </GlowButton>
       </form>
     </div>
+  );
+}
+
+
+function MemoryPipelinePill({ status }: { status: MemoryStatus }) {
+  // Each variant gets its own colour so a glance tells you the state.
+  let label = "";
+  let tone = "info";
+  let dotPulse = true;
+
+  switch (status.kind) {
+    case "extracting":
+      label = "Reading the conversation for memories…";
+      tone = "info";
+      break;
+    case "persisting":
+      label = `Encrypting & uploading to Walrus… ${status.done}/${status.total}`;
+      tone = "info";
+      break;
+    case "signing":
+      // The user MUST sign in their wallet for the on-chain commit.
+      // Spell it out so the popup doesn't get missed.
+      label = `Sign in your wallet to save ${status.count} ${
+        status.count === 1 ? "memory" : "memories"
+      } on-chain ↗`;
+      tone = "warn";
+      break;
+    case "done":
+      label = `Saved ${status.count} ${
+        status.count === 1 ? "memory" : "memories"
+      } on-chain${
+        status.partial ? ` · ${status.partial.failed} failed` : ""
+      }`;
+      tone = "success";
+      dotPulse = false;
+      break;
+    case "skipped":
+      label = "Nothing memorable in that turn — no save needed";
+      tone = "muted";
+      dotPulse = false;
+      break;
+    case "failed":
+      label = `Memory pipeline failed: ${status.reason}`;
+      tone = "error";
+      dotPulse = false;
+      break;
+    default:
+      return null;
+  }
+
+  const toneClass: Record<string, string> = {
+    info: "border-violet-400/30 bg-violet-500/10 text-violet-200",
+    warn: "border-amber-400/40 bg-amber-500/15 text-amber-200",
+    success: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+    error: "border-red-500/30 bg-red-500/10 text-red-200",
+    muted: "border-white/10 bg-white/[0.04] text-white/60",
+  };
+  const dotClass: Record<string, string> = {
+    info: "bg-violet-400",
+    warn: "bg-amber-400",
+    success: "bg-emerald-400",
+    error: "bg-red-400",
+    muted: "bg-white/40",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className={clsx(
+        "flex items-center gap-2 border-t px-5 py-2 text-xs",
+        toneClass[tone],
+      )}
+    >
+      <span
+        className={clsx(
+          "size-1.5 rounded-full",
+          dotClass[tone],
+          dotPulse && "animate-pulse",
+        )}
+      />
+      <span className="truncate">{label}</span>
+    </motion.div>
   );
 }
