@@ -16,8 +16,17 @@ function required(name: string, value: string | undefined): string {
 // rotates through. The first entry is what we hit first; it's also
 // what `.env.example` documents so users get the same default.
 //
-// Sourced 2025-05 by DNS-checking the entries listed in Walrus docs +
-// a few community publishers. Update if a domain goes dark.
+// Sourced 2025-05 by DNS-checking + HTTP-probing the entries listed in
+// Walrus docs + a few community endpoints. Update if a domain goes dark.
+//
+// IMPORTANT — mainnet writes:
+// Mysten took the free public mainnet publisher offline; community
+// mainnet publishers are unreliable / 502 / require auth tokens. For
+// production mainnet writes, run your own `walrus daemon` (free, you
+// pay only the on-chain WAL) and point NEXT_PUBLIC_WALRUS_PUBLISHER at
+// it, OR use a paid service (Tusky, etc.) and set
+// NEXT_PUBLIC_WALRUS_PUBLISHER_AUTH_TOKEN. See .env.example for both
+// patterns. The mainnet aggregator IS still free and public.
 const WALRUS_TESTNET_PUBLISHERS = [
   "https://publisher.walrus-testnet.walrus.space",
   "https://wal-publisher-testnet.staketab.org",
@@ -26,8 +35,9 @@ const WALRUS_TESTNET_AGGREGATORS = [
   "https://aggregator.walrus-testnet.walrus.space",
   "https://wal-aggregator-testnet.staketab.org",
 ];
-const WALRUS_MAINNET_PUBLISHERS = [
-  "https://publisher.walrus.banansen.dev",
+const WALRUS_MAINNET_PUBLISHERS: string[] = [
+  // Intentionally empty — there is no working free public mainnet
+  // publisher right now. Set NEXT_PUBLIC_WALRUS_PUBLISHER explicitly.
 ];
 const WALRUS_MAINNET_AGGREGATORS = [
   "https://aggregator.walrus-mainnet.walrus.space",
@@ -94,6 +104,21 @@ export const config = {
       process.env.NEXT_PUBLIC_WALRUS_AGGREGATOR,
       defaultAggregators,
     ),
+    /**
+     * Optional bearer token for the publisher. Required if you point
+     * the app at a paid managed publisher (Tusky etc.) or your own
+     * `walrus daemon` started with `--with-auth-token`. Sent as
+     *   Authorization: Bearer <token>
+     * on every PUT. Leave empty for unauthenticated public publishers
+     * (testnet defaults).
+     *
+     * Caveat: NEXT_PUBLIC_* is bundled into the client JS, so anyone
+     * who opens devtools sees the token. For shared deployments use a
+     * personal token with strict per-key quotas, or proxy writes
+     * through your own /api route and store the token server-side.
+     */
+    publisherAuthToken:
+      process.env.NEXT_PUBLIC_WALRUS_PUBLISHER_AUTH_TOKEN?.trim() || "",
     defaultEpochs: Number(
       process.env.NEXT_PUBLIC_WALRUS_DEFAULT_EPOCHS ?? "53",
     ),

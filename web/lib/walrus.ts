@@ -40,12 +40,30 @@ export async function storeBlob(
   const publishers = config.walrus.publishers;
   const errors: string[] = [];
 
+  if (publishers.length === 0) {
+    throw new Error(
+      "No Walrus publishers configured. " +
+        "Set NEXT_PUBLIC_WALRUS_PUBLISHER (and NEXT_PUBLIC_WALRUS_PUBLISHER_AUTH_TOKEN " +
+        "if it's a paid/auth-protected endpoint), or switch NEXT_PUBLIC_SUI_NETWORK=testnet " +
+        "to use the free testnet publishers.",
+    );
+  }
+
+  // Paid publishers (Tusky, hosted walrus daemon, etc.) require a
+  // bearer token. Public publishers ignore the header so it's safe to
+  // send unconditionally when configured.
+  const headers: HeadersInit = {};
+  if (config.walrus.publisherAuthToken) {
+    headers.authorization = `Bearer ${config.walrus.publisherAuthToken}`;
+  }
+
   for (let i = 0; i < publishers.length; i++) {
     const base = publishers[i];
     const url = `${base}/v1/blobs?epochs=${epochs}`;
     try {
       const res = await fetch(url, {
         method: "PUT",
+        headers,
         body: data as BodyInit,
       });
 
