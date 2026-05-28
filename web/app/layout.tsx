@@ -4,7 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Italiana } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
-import { AuroraBackground } from "@/components/AuroraBackground";
+import { ParticlesBackground } from "@/components/ParticlesBackground";
 
 // Italiana — single-weight Renaissance serif. Used only for the "Heirloom"
 // brand mark in the header and any oversized hero word that wants the
@@ -39,9 +39,10 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable} ${italiana.variable}`}
     >
       <body className="min-h-screen overflow-x-hidden font-sans antialiased">
-        {/* Background stack: walrus.xyz-inspired mesh aurora + grain.
-              All layers are pointer-events: none and below z-10 content. */}
-        <AuroraBackground />
+        {/* Background stack: particles.js star/snow field + grain.
+              Particles canvas is interactive (hover bubble, click repulse)
+              so it must NOT be pointer-events:none. Grain stays inert. */}
+        <ParticlesBackground />
         <div className="grain" />
         <Providers>
           <div className="relative z-10">{children}</div>
