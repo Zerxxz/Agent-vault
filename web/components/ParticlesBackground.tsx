@@ -118,10 +118,17 @@ export function ParticlesBackground() {
   }, []);
 
   return (
+    // z-0 not -z-10: the html/body element in globals.css paints an
+    // opaque #050816 background, which would cover any negative z-index
+    // child. Sitting at z-0 lets the canvas render on top of the body
+    // bg while the grain (z-1) and content (z-10) layer above us.
+    //
+    // No `bg-*` here — the canvas itself draws transparent over the
+    // body's existing #050816 fill, so the colour comes for free.
     <div
       id="particles-js"
       aria-hidden="true"
-      className="fixed inset-0 -z-10 bg-[#050816]"
+      className="fixed inset-0 z-0"
     />
   );
 }
