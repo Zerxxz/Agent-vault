@@ -28,12 +28,15 @@ function required(name: string, value: string | undefined): string {
 // NEXT_PUBLIC_WALRUS_PUBLISHER_AUTH_TOKEN. See .env.example for both
 // patterns. The mainnet aggregator IS still free and public.
 const WALRUS_TESTNET_PUBLISHERS = [
+  // All HTTP 200 on PUT (probed 2025-05).
   "https://publisher.walrus-testnet.walrus.space",
   "https://wal-publisher-testnet.staketab.org",
+  "https://walrus-testnet-publisher.nodes.guru",
 ];
 const WALRUS_TESTNET_AGGREGATORS = [
   "https://aggregator.walrus-testnet.walrus.space",
   "https://wal-aggregator-testnet.staketab.org",
+  "https://walrus-testnet-aggregator.nodes.guru",
 ];
 const WALRUS_MAINNET_PUBLISHERS: string[] = [
   // Intentionally empty — there is no working free public mainnet
