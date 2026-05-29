@@ -52,7 +52,14 @@ export async function storeBlob(
   // Paid publishers (Tusky, hosted walrus daemon, etc.) require a
   // bearer token. Public publishers ignore the header so it's safe to
   // send unconditionally when configured.
-  const headers: HeadersInit = {};
+  //
+  // ngrok-skip-browser-warning bypasses ngrok's free-tier interstitial
+  // page that occasionally fires on cross-origin fetches. Walrus
+  // daemons + other publishers ignore unknown headers, so it's a safe
+  // unconditional addition.
+  const headers: HeadersInit = {
+    "ngrok-skip-browser-warning": "true",
+  };
   if (config.walrus.publisherAuthToken) {
     headers.authorization = `Bearer ${config.walrus.publisherAuthToken}`;
   }
@@ -122,7 +129,9 @@ export async function readBlob(blobId: string): Promise<Uint8Array> {
     const base = aggregators[i];
     const url = `${base}/v1/blobs/${blobId}`;
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, {
+        headers: { "ngrok-skip-browser-warning": "true" },
+      });
       if (!res.ok) {
         const msg = `${res.status}`;
         if (res.status === 404) {
